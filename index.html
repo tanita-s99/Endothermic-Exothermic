@@ -1,0 +1,1898 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>การเปลี่ยนแปลงพลังงานในปฏิกิริยาเคมี - สื่อจำลองวิทยาศาสตร์ ม.3</title>
+
+  <!-- โหลดฟอนต์ Google Font 'Sarabun' น้ำหนัก 300 ถึง 800 -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- โหลด Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Sarabun', 'sans-serif'],
+          },
+        },
+      },
+    };
+  </script>
+
+  <style>
+    /* ตั้งค่าพื้นฐานฟอนต์ Sarabun และโหมดขยายตัวอักษรสำหรับห้องเรียนขนาดใหญ่ */
+    :root {
+      --base-scale: 1;
+    }
+
+    html {
+      font-family: 'Sarabun', sans-serif;
+      font-size: 16px;
+      scroll-behavior: smooth;
+    }
+
+    html.large-text {
+      font-size: 19px;
+    }
+
+    body {
+      font-family: 'Sarabun', sans-serif;
+      background-color: #f1f5f9;
+      color: #0f172a;
+      overflow-x: hidden;
+    }
+
+    /* แอนิเมชันลูกศรการถ่ายโอนความร้อน */
+    @keyframes flowInwardLeft {
+      0%, 100% { transform: translateX(-8px); opacity: 0.45; }
+      50% { transform: translateX(8px); opacity: 1; }
+    }
+    @keyframes flowInwardRight {
+      0%, 100% { transform: translateX(8px); opacity: 0.45; }
+      50% { transform: translateX(-8px); opacity: 1; }
+    }
+    @keyframes flowOutwardLeft {
+      0%, 100% { transform: translateX(8px); opacity: 0.45; }
+      50% { transform: translateX(-8px); opacity: 1; }
+    }
+    @keyframes flowOutwardRight {
+      0%, 100% { transform: translateX(-8px); opacity: 0.45; }
+      50% { transform: translateX(8px); opacity: 1; }
+    }
+    @keyframes heatWaveRise {
+      0% { transform: translateY(6px) scaleY(0.95); opacity: 0.2; }
+      50% { transform: translateY(-6px) scaleY(1.05); opacity: 0.85; }
+      100% { transform: translateY(-16px) scaleY(0.95); opacity: 0.1; }
+    }
+    @keyframes coldPulse {
+      0%, 100% { opacity: 0.35; transform: scale(0.98); }
+      50% { opacity: 0.9; transform: scale(1.03); }
+    }
+    @keyframes spinStirrer {
+      0% { transform: scaleX(1); }
+      50% { transform: scaleX(0.2); }
+      100% { transform: scaleX(1); }
+    }
+
+    .anim-in-left { animation: flowInwardLeft 1.4s infinite ease-in-out; }
+    .anim-in-right { animation: flowInwardRight 1.4s infinite ease-in-out; }
+    .anim-out-left { animation: flowOutwardLeft 1.4s infinite ease-in-out; }
+    .anim-out-right { animation: flowOutwardRight 1.4s infinite ease-in-out; }
+    .anim-heat-wave { animation: heatWaveRise 1.8s infinite ease-in-out; }
+    .anim-cold-pulse { animation: coldPulse 2s infinite ease-in-out; }
+    .anim-stirrer {
+      transform-origin: center;
+      transform-box: fill-box;
+      animation: spinStirrer 0.55s infinite linear;
+    }
+
+    /* ปรับแต่งแถบเลื่อน (Range Slider) สำหรับครูผู้สอนให้จับง่ายและชัดเจน */
+    input[type="range"].teacher-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      height: 14px;
+      border-radius: 999px;
+      background: #cbd5e1;
+      outline: none;
+      cursor: pointer;
+    }
+    input[type="range"].teacher-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #0f172a;
+      border: 4px solid #ffffff;
+      box-shadow: 0 3px 10px rgba(15, 23, 42, 0.35);
+      cursor: grab;
+      transition: transform 0.15s ease;
+    }
+    input[type="range"].teacher-slider::-webkit-slider-thumb:hover {
+      transform: scale(1.15);
+    }
+    input[type="range"].teacher-slider::-moz-range-thumb {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #0f172a;
+      border: 4px solid #ffffff;
+      box-shadow: 0 3px 10px rgba(15, 23, 42, 0.35);
+      cursor: grab;
+    }
+
+    /* กล่องข้อความแจ้งเตือนแทน alert() */
+    .toast-enter {
+      animation: fadeInDown 0.25s ease-out forwards;
+    }
+    @keyframes fadeInDown {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-sky-200 selection:text-slate-900">
+
+  <!-- แถบแจ้งเตือนสถานะสั้นๆ (แทนการใช้ alert) -->
+  <div id="toastBanner" class="fixed top-4 right-4 z-50 hidden bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-xl font-semibold text-base border border-slate-700"></div>
+
+  <!-- ===================================================================== -->
+  <!-- 1. ส่วนหัวเรื่อง (HEADER) และปุ่มเลือกโหมดสำหรับครูผู้สอน -->
+  <!-- ===================================================================== -->
+  <header class="bg-white border-b-2 border-slate-200 shadow-sm sticky top-0 z-30">
+    <div class="max-w-[1600px] mx-auto px-4 sm:px-6 py-3 sm:py-4">
+      <!-- แถวบน: ชื่อเรื่อง + ปุ่มเครื่องมือสำหรับห้องเรียน -->
+      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 pb-3 border-b border-slate-100">
+        <div class="flex items-start sm:items-center gap-3.5">
+          <!-- ไอคอนสัญลักษณ์พลังงานเคมี -->
+          <div id="headerBadgeIcon" class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-sky-600 to-indigo-700 text-white flex items-center justify-center shadow-md shrink-0">
+            <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 3h6" />
+              <path d="M10 3v5.172a2 2 0 0 1-.586 1.414l-4.828 4.828A2 2 0 0 0 4 15.828V19a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3.172a2 2 0 0 0-.586-1.414l-4.828-4.828A2 2 0 0 1 14 8.172V3" />
+              <path d="M6 15h12" />
+            </svg>
+          </div>
+          <div>
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="px-2.5 py-0.5 rounded-lg bg-slate-800 text-white text-xs sm:text-sm font-bold tracking-wide">
+                วิทยาศาสตร์ ม.3
+              </span>
+              <h1 class="text-xl sm:text-2xl lg:text-3xl font-extrabold text-slate-900 leading-tight">
+                การเปลี่ยนแปลงพลังงานในปฏิกิริยาเคมี
+              </h1>
+            </div>
+            <p class="text-sm sm:text-base text-slate-600 font-medium mt-0.5">
+              สื่อจำลองการเรียนรู้วิทยาศาสตร์ ชั้นมัธยมศึกษาปีที่ 3 | เปรียบเทียบกระบวนการดูดพลังงาน และ กระบวนการคายพลังงาน
+            </p>
+          </div>
+        </div>
+
+        <!-- ปุ่มเครื่องมือเสริมด้านขวาบน -->
+        <div class="flex flex-wrap items-center gap-2 sm:gap-2.5">
+          <button id="btnSummaryModal" type="button"
+            class="px-3.5 py-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border-2 border-emerald-300 font-bold text-sm sm:text-base flex items-center gap-2 transition shadow-sm cursor-pointer">
+            <svg class="w-5 h-5 text-emerald-700" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+            <span>ตารางสรุปเปรียบเทียบ (ม.3)</span>
+          </button>
+
+          <button id="btnLargeText" type="button" aria-pressed="false"
+            class="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border-2 border-slate-300 font-bold text-sm sm:text-base flex items-center gap-2 transition shadow-sm cursor-pointer">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 7V4h16v3M9 20h6M12 4v16" />
+            </svg>
+            <span id="largeTextLabel">ขยายตัวอักษร (Large Text)</span>
+          </button>
+
+          <button id="btnSoundToggle" type="button" aria-pressed="false" title="เปิด/ปิดเสียงประกอบการจำลอง"
+            class="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border-2 border-slate-300 font-bold transition shadow-sm cursor-pointer">
+            <svg id="iconSoundOff" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M11 5L6 9H2v6h4l5 4V5zM23 9l-6 6M17 9l6 6" />
+            </svg>
+            <svg id="iconSoundOn" class="w-5 h-5 hidden text-sky-600" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M11 5L6 9H2v6h4l5 4V5zM15.54 8.46a5 5 0 010 7.07M19.07 4.93a10 10 0 010 14.14" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- แถวล่าง: ปุ่มสลับโหมดหลักขนาดใหญ่ 3 ปุ่ม -->
+      <nav aria-label="เลือกโหมดการเรียนรู้" class="grid grid-cols-1 md:grid-cols-3 gap-2.5 pt-3">
+        <!-- ปุ่มที่ 1: กระบวนการดูดพลังงาน -->
+        <button id="modeBtnEndo" type="button" data-mode="endo"
+          class="mode-tab-btn px-4 py-3 rounded-2xl border-2 font-extrabold text-base sm:text-lg flex items-center justify-center gap-2.5 transition-all shadow-sm cursor-pointer bg-sky-600 text-white border-sky-700 ring-4 ring-sky-200">
+          <span class="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center text-sm font-black">1</span>
+          <span>กระบวนการดูดพลังงาน (Endothermic)</span>
+          <span class="text-xl" aria-hidden="true">❄️</span>
+        </button>
+
+        <!-- ปุ่มที่ 2: กระบวนการคายพลังงาน -->
+        <button id="modeBtnExo" type="button" data-mode="exo"
+          class="mode-tab-btn px-4 py-3 rounded-2xl border-2 font-extrabold text-base sm:text-lg flex items-center justify-center gap-2.5 transition-all shadow-sm cursor-pointer bg-white text-orange-800 border-orange-300 hover:bg-orange-50">
+          <span class="w-7 h-7 rounded-full bg-orange-100 text-orange-800 flex items-center justify-center text-sm font-black">2</span>
+          <span>กระบวนการคายพลังงาน (Exothermic)</span>
+          <span class="text-xl" aria-hidden="true">🔥</span>
+        </button>
+
+        <!-- ปุ่มที่ 3: เปรียบเทียบ 2 กระบวนการพร้อมกัน -->
+        <button id="modeBtnCompare" type="button" data-mode="compare"
+          class="mode-tab-btn px-4 py-3 rounded-2xl border-2 font-extrabold text-base sm:text-lg flex items-center justify-center gap-2.5 transition-all shadow-sm cursor-pointer bg-white text-indigo-900 border-indigo-300 hover:bg-indigo-50">
+          <span class="w-7 h-7 rounded-full bg-indigo-100 text-indigo-800 flex items-center justify-center text-sm font-black">3</span>
+          <span>เปรียบเทียบ 2 กระบวนการพร้อมกัน (Compare)</span>
+          <span class="text-xl" aria-hidden="true">⚖️</span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ===================================================================== -->
+  <!-- 2. พื้นที่แสดงผลการจำลองหลัก (MAIN DASHBOARD) -->
+  <!-- ===================================================================== -->
+  <main class="flex-1 max-w-[1600px] w-full mx-auto px-4 sm:px-6 py-5">
+
+    <!-- =================================================================== -->
+    <!-- มุมมองโหมดเดี่ยว (โหมด 1: ดูดพลังงาน หรือ โหมด 2: คายพลังงาน) -->
+    <!-- =================================================================== -->
+    <div id="singleModeView" class="grid grid-cols-1 xl:grid-cols-12 gap-5 items-stretch">
+
+      <!-- คอลัมน์ซ้าย (5 ส่วน): การทดลองในห้องปฏิบัติการและระดับอนุภาค -->
+      <section class="xl:col-span-5 bg-white rounded-3xl border-2 border-slate-200 shadow-md p-4 sm:p-5 flex flex-col justify-between gap-4">
+        <div>
+          <!-- หัวข้อคอลัมน์ซ้าย + เมนูเลือกตัวอย่างปฏิกิริยา -->
+          <div class="flex flex-col gap-2.5 pb-3 border-b border-slate-200">
+            <div class="flex items-center justify-between gap-2">
+              <span id="labTypeBadge" class="px-3 py-1 rounded-xl bg-sky-100 text-sky-900 font-extrabold text-sm sm:text-base">
+                ห้องปฏิบัติการจำลอง : ดูดพลังงาน
+              </span>
+              <span id="reactionStageBadge" class="px-3 py-1 rounded-xl bg-slate-100 text-slate-700 font-bold text-xs sm:text-sm">
+                สถานะ: พร้อมเริ่มทดลอง (0%)
+              </span>
+            </div>
+
+            <!-- เมนูเลือกตัวอย่างปฏิกิริยาเคมี ม.3 -->
+            <div class="bg-slate-50 p-2.5 rounded-2xl border border-slate-200">
+              <label for="reactionSelect" class="block text-xs sm:text-sm font-bold text-slate-600 mb-1">
+                เลือกตัวอย่างปฏิกิริยาเคมีในชีวิตประจำวัน (ระดับชั้น ม.3):
+              </label>
+              <select id="reactionSelect"
+                class="w-full px-3 py-2 rounded-xl bg-white border-2 border-slate-300 text-slate-900 font-bold text-sm sm:text-base focus:outline-none focus:border-sky-600 cursor-pointer">
+              </select>
+              <div id="chemicalEquationBox" class="mt-2 px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-center font-bold text-slate-800 text-sm sm:text-base">
+                NH₄NO₃(s) + H₂O(l) + พลังงานความร้อน → NH₄⁺(aq) + NO₃⁻(aq)
+              </div>
+            </div>
+          </div>
+
+          <!-- พื้นที่ภาพจำลองบีกเกอร์ + ลูกศรความร้อน + เทอร์โมมิเตอร์ -->
+          <div class="mt-3 grid grid-cols-1 sm:grid-cols-12 gap-3 items-center bg-gradient-to-b from-slate-50 to-slate-100 rounded-2xl border border-slate-200 p-3">
+            <!-- บีกเกอร์สารละลายและลูกศรพลังงาน (8 คอลัมน์) -->
+            <div class="sm:col-span-8 flex flex-col items-center">
+              <svg id="singleBeakerSvg" viewBox="0 0 340 250" class="w-full max-w-[340px] h-auto select-none" role="img" aria-label="ภาพจำลองบีกเกอร์และทิศทางการถ่ายโอนความร้อน">
+                <defs>
+                  <!-- ไล่สีของเหลวในบีกเกอร์ -->
+                  <linearGradient id="beakerLiquidGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop id="liqStopTop" offset="0%" stop-color="#38bdf8" stop-opacity="0.75" />
+                    <stop id="liqStopBot" offset="100%" stop-color="#0284c7" stop-opacity="0.92" />
+                  </linearGradient>
+                  <!-- แสงออร่าความร้อน/ความเย็น -->
+                  <radialGradient id="thermalAuraGrad" cx="50%" cy="55%" r="50%">
+                    <stop id="auraStopInner" offset="0%" stop-color="#0ea5e9" stop-opacity="0.35" />
+                    <stop id="auraStopOuter" offset="100%" stop-color="#0ea5e9" stop-opacity="0" />
+                  </radialGradient>
+                </defs>
+
+                <!-- ป้ายระบุสิ่งแวดล้อม -->
+                <text x="170" y="20" text-anchor="middle" fill="#475569" font-size="13" font-weight="700">
+                  สิ่งแวดล้อม (Surroundings: อากาศ / มือสัมผัส)
+                </text>
+
+                <!-- วงแสงออร่าความเย็นหรือความร้อนรอบบีกเกอร์ -->
+                <ellipse id="beakerThermalAura" cx="170" cy="145" rx="125" ry="85" fill="url(#thermalAuraGrad)" />
+
+                <!-- ฐานวางบีกเกอร์ -->
+                <rect x="85" y="216" width="170" height="12" rx="6" fill="#334155" />
+                <rect x="105" y="210" width="130" height="6" rx="3" fill="#64748b" />
+
+                <!-- เอฟเฟกต์ไอร้อนลอยขึ้น (แสดงเมื่อเป็นกระบวนการคายพลังงาน) -->
+                <g id="exoHeatWaves" class="hidden">
+                  <path d="M125 65 Q118 52 125 40 Q132 28 125 18" fill="none" stroke="#f97316" stroke-width="3.5" stroke-linecap="round" class="anim-heat-wave" />
+                  <path d="M170 60 Q163 47 170 35 Q177 23 170 13" fill="none" stroke="#ef4444" stroke-width="3.5" stroke-linecap="round" class="anim-heat-wave" style="animation-delay: 0.4s;" />
+                  <path d="M215 65 Q208 52 215 40 Q222 28 215 18" fill="none" stroke="#f97316" stroke-width="3.5" stroke-linecap="round" class="anim-heat-wave" style="animation-delay: 0.8s;" />
+                </g>
+
+                <!-- เอฟเฟกต์เกล็ดน้ำแข็ง/ความเย็น (แสดงเมื่อเป็นกระบวนการดูดพลังงาน) -->
+                <g id="endoFrostEffects">
+                  <g class="anim-cold-pulse" fill="#0284c7">
+                    <circle cx="96" cy="125" r="3.5" />
+                    <circle cx="93" cy="155" r="4.5" />
+                    <circle cx="98" cy="182" r="3" />
+                    <circle cx="244" cy="128" r="4" />
+                    <circle cx="247" cy="160" r="3.5" />
+                    <circle cx="242" cy="185" r="4.5" />
+                  </g>
+                </g>
+
+                <!-- ของเหลวสารละลายในบีกเกอร์ -->
+                <path id="beakerLiquidPath"
+                  d="M106 112 L234 112 L234 198 Q234 208 224 208 L116 208 Q106 208 106 198 Z"
+                  fill="url(#beakerLiquidGrad)" />
+
+                <!-- ผิวหน้าของเหลว -->
+                <ellipse id="beakerLiquidSurface" cx="170" cy="112" rx="64" ry="7" fill="#7dd3fc" opacity="0.85" />
+
+                <!-- แท่งแม่เหล็กกวนสาร (Stirrer Bar) -->
+                <rect id="stirrerBar" x="152" y="196" width="36" height="7" rx="3.5" fill="#ffffff" opacity="0.9" />
+
+                <!-- ฟองแก๊สในสารละลาย (ควบคุมด้วย JS ตามความคืบหน้า) -->
+                <g id="beakerBubblesGroup"></g>
+
+                <!-- ตัวแก้วบีกเกอร์ใสและขีดบอกปริมาตร -->
+                <path d="M100 72 L105 78 L105 198 Q105 210 117 210 L223 210 Q235 210 235 198 L235 78 L240 72"
+                  fill="none" stroke="#1e293b" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+                <!-- ขีดสเกลบนบีกเกอร์ -->
+                <line x1="115" y1="115" x2="132" y2="115" stroke="#ffffff" stroke-width="2" opacity="0.8" />
+                <line x1="115" y1="145" x2="127" y2="145" stroke="#ffffff" stroke-width="2" opacity="0.8" />
+                <line x1="115" y1="175" x2="132" y2="175" stroke="#ffffff" stroke-width="2" opacity="0.8" />
+
+                <!-- ป้ายระบุ "ระบบ (System)" กลางบีกเกอร์ -->
+                <rect x="122" y="138" width="96" height="36" rx="10" fill="#0f172a" fill-opacity="0.78" />
+                <text x="170" y="154" text-anchor="middle" fill="#ffffff" font-size="12" font-weight="800">ระบบ (System)</text>
+                <text x="170" y="168" text-anchor="middle" fill="#e2e8f0" font-size="10.5" font-weight="600">สารที่ทำปฏิกิริยา</text>
+
+                <!-- ลูกศรแสดงทิศทางพลังงานความร้อน: ดูดพลังงาน (ชี้เข้าสู่บีกเกอร์) -->
+                <g id="arrowsEndoGroup">
+                  <!-- ซ้ายชี้เข้า -->
+                  <g class="anim-in-left">
+                    <path d="M16 118 L68 118 L68 109 L88 124 L68 139 L68 130 L16 130 Z" fill="#0284c7" stroke="#ffffff" stroke-width="1.5" />
+                    <path d="M16 164 L68 164 L68 155 L88 170 L68 185 L68 176 L16 176 Z" fill="#0284c7" stroke="#ffffff" stroke-width="1.5" />
+                  </g>
+                  <!-- ขวาชี้เข้า -->
+                  <g class="anim-in-right">
+                    <path d="M324 118 L272 118 L272 109 L252 124 L272 139 L272 130 L324 130 Z" fill="#0284c7" stroke="#ffffff" stroke-width="1.5" />
+                    <path d="M324 164 L272 164 L272 155 L252 170 L272 185 L272 176 L324 176 Z" fill="#0284c7" stroke="#ffffff" stroke-width="1.5" />
+                  </g>
+                </g>
+
+                <!-- ลูกศรแสดงทิศทางพลังงานความร้อน: คายพลังงาน (ชี้ออกจากบีกเกอร์) -->
+                <g id="arrowsExoGroup" class="hidden">
+                  <!-- ซ้ายชี้ออก -->
+                  <g class="anim-out-left">
+                    <path d="M88 118 L36 118 L36 109 L16 124 L36 139 L36 130 L88 130 Z" fill="#ea580c" stroke="#ffffff" stroke-width="1.5" />
+                    <path d="M88 164 L36 164 L36 155 L16 170 L36 185 L36 176 L88 176 Z" fill="#dc2626" stroke="#ffffff" stroke-width="1.5" />
+                  </g>
+                  <!-- ขวาชี้ออก -->
+                  <g class="anim-out-right">
+                    <path d="M252 118 L304 118 L304 109 L324 124 L304 139 L304 130 L252 130 Z" fill="#ea580c" stroke="#ffffff" stroke-width="1.5" />
+                    <path d="M252 164 L304 164 L304 155 L324 170 L304 185 L304 176 L252 176 Z" fill="#dc2626" stroke="#ffffff" stroke-width="1.5" />
+                  </g>
+                </g>
+
+                <!-- ป้ายสรุปทิศทางพลังงานด้านล่างบีกเกอร์ -->
+                <text id="heatDirectionCaption" x="170" y="243" text-anchor="middle" fill="#0369a1" font-size="13.5" font-weight="800">
+                  ความร้อนไหลเข้าสู่ระบบ (ดูดพลังงาน)
+                </text>
+              </svg>
+            </div>
+
+            <!-- เทอร์โมมิเตอร์และจอตัวเลขดิจิทัลอุณหภูมิสิ่งแวดล้อม (4 คอลัมน์) -->
+            <div class="sm:col-span-4 flex flex-col items-center justify-center bg-white rounded-2xl border-2 border-slate-200 p-3 shadow-inner">
+              <span class="text-xs font-extrabold text-slate-500 uppercase tracking-wider text-center">
+                อุณหภูมิสิ่งแวดล้อม
+              </span>
+
+              <!-- หลอดเทอร์โมมิเตอร์ SVG -->
+              <svg viewBox="0 0 80 155" class="w-16 h-32 my-1" role="img" aria-label="หลอดเทอร์โมมิเตอร์วัดอุณหภูมิ">
+                <!-- ตัวหลอดแก้ว -->
+                <rect x="31" y="10" width="18" height="108" rx="9" fill="#f1f5f9" stroke="#334155" stroke-width="3" />
+                <!-- ขีดวัดอุณหภูมิ -->
+                <line x1="49" y1="25" x2="57" y2="25" stroke="#64748b" stroke-width="2" />
+                <line x1="49" y1="45" x2="55" y2="45" stroke="#64748b" stroke-width="1.5" />
+                <line x1="49" y1="65" x2="57" y2="65" stroke="#64748b" stroke-width="2" />
+                <line x1="49" y1="85" x2="55" y2="85" stroke="#64748b" stroke-width="1.5" />
+                <line x1="49" y1="105" x2="57" y2="105" stroke="#64748b" stroke-width="2" />
+
+                <!-- ลำของเหลวในเทอร์โมมิเตอร์ (ปรับความสูงด้วย JS) -->
+                <rect id="thermoColumn" x="35" y="65" width="10" height="55" rx="4" fill="#0284c7" />
+                <!-- กระเปาะเทอร์โมมิเตอร์ -->
+                <circle id="thermoBulb" cx="40" cy="128" r="16" fill="#0284c7" stroke="#334155" stroke-width="3" />
+                <circle cx="35" cy="123" r="4" fill="#ffffff" opacity="0.45" />
+              </svg>
+
+              <!-- จอแสดงผลดิจิทัลขนาดใหญ่ -->
+              <div id="digitalTempBox" class="w-full bg-slate-900 text-sky-400 rounded-xl py-2 px-2 text-center border-2 border-slate-700 shadow">
+                <div id="digitalTempValue" class="text-2xl sm:text-3xl font-black tracking-tight leading-none">
+                  25.0 °C
+                </div>
+                <div id="digitalTempDelta" class="text-xs font-bold text-slate-300 mt-1">
+                  เริ่มต้น 25.0 °C
+                </div>
+              </div>
+
+              <div id="tempFeelingBadge" class="mt-2 px-2.5 py-1 rounded-lg bg-sky-50 text-sky-800 border border-sky-200 text-xs font-extrabold text-center w-full">
+                สัมผัส: อุณหภูมิปกติ
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- กรอบจำลองระดับอนุภาค (Microscopic View: สลายพันธะ vs สร้างพันธะ) -->
+        <div class="bg-slate-900 text-white rounded-2xl p-3.5 sm:p-4 border-2 border-slate-700 shadow-inner">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping"></span>
+              <h2 class="text-sm sm:text-base font-extrabold text-amber-300">
+                มุมมองระดับอนุภาค (Microscopic View)
+              </h2>
+            </div>
+            <span id="particleStepBadge" class="px-2.5 py-0.5 rounded-lg bg-slate-800 border border-slate-600 text-xs sm:text-sm font-bold text-sky-300">
+              ระยะที่ 1: สารตั้งต้นพร้อมชนกัน
+            </span>
+          </div>
+
+          <!-- แคนวาส SVG จำลองการสลายพันธะและสร้างพันธะ -->
+          <svg id="particleSvg" viewBox="0 0 420 120" class="w-full h-28 bg-slate-950/90 rounded-xl border border-slate-800" role="img" aria-label="การจำลองการสลายพันธะและสร้างพันธะระดับอนุภาค">
+            <!-- พื้นหลังตารางจางๆ -->
+            <g stroke="#1e293b" stroke-width="1">
+              <line x1="140" y1="0" x2="140" y2="120" stroke-dasharray="4 4" />
+              <line x1="280" y1="0" x2="280" y2="120" stroke-dasharray="4 4" />
+            </g>
+
+            <!-- ป้ายกำกับ 3 ช่วงในกรอบอนุภาค -->
+            <text x="70" y="16" text-anchor="middle" fill="#94a3b8" font-size="10.5" font-weight="700">1. สารตั้งต้น</text>
+            <text x="210" y="16" text-anchor="middle" fill="#fbbf24" font-size="10.5" font-weight="700">2. สลายพันธะ (ดูด E)</text>
+            <text x="350" y="16" text-anchor="middle" fill="#34d399" font-size="10.5" font-weight="700">3. สร้างพันธะ (คาย E)</text>
+
+            <!-- กลุ่มคลื่นพลังงาน (ดูดเข้าหรือคายออก) -->
+            <g id="particleEnergyWaves"></g>
+
+            <!-- กลุ่มพันธะเคมี (เส้นเชื่อมระหว่างอะตอม) -->
+            <g id="particleBondsLayer"></g>
+
+            <!-- กลุ่มอะตอมเคลื่อนที่ -->
+            <g id="particleAtomsLayer"></g>
+          </svg>
+
+          <!-- สรุปสมดุลพลังงานการสลายพันธะ vs สร้างพันธะ -->
+          <div id="bondBalanceSummary" class="mt-2.5 px-3 py-2 rounded-xl bg-slate-800/90 border border-slate-700 text-xs sm:text-sm font-semibold text-slate-200 flex items-center justify-between gap-2">
+            <span>พลังงานสลายพันธะ <strong class="text-sky-400">มากกว่า</strong> พลังงานสร้างพันธะใหม่</span>
+            <span class="px-2 py-0.5 rounded bg-sky-900/80 text-sky-200 font-extrabold shrink-0">สุทธิ: ดูดพลังงาน (+ΔE)</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- คอลัมน์ขวา (7 ส่วน): กราฟการเปลี่ยนแปลงพลังงาน (Reaction Energy Diagram) -->
+      <section class="xl:col-span-7 bg-white rounded-3xl border-2 border-slate-200 shadow-md p-4 sm:p-6 flex flex-col justify-between gap-4">
+        <div>
+          <!-- หัวข้อกราฟและปุ่มควบคุมสำหรับครูผู้สอน -->
+          <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 pb-3 border-b border-slate-200">
+            <div>
+              <h2 class="text-lg sm:text-xl lg:text-2xl font-extrabold text-slate-900">
+                กราฟการเปลี่ยนแปลงพลังงาน (Reaction Energy Diagram)
+              </h2>
+              <p class="text-xs sm:text-sm text-slate-600 font-medium">
+                เปรียบเทียบระดับพลังงานของสารตั้งต้น สภาวะแทรนซิชัน และผลิตภัณฑ์
+              </p>
+            </div>
+
+            <!-- ปุ่มเครื่องมือครูบนกราฟ -->
+            <div class="flex flex-wrap items-center gap-2">
+              <button id="btnToggleLabels" type="button" aria-pressed="true"
+                class="px-3.5 py-2 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-950 border-2 border-amber-400 font-bold text-xs sm:text-sm flex items-center gap-1.5 transition cursor-pointer">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+                <span id="toggleLabelsText">ซ่อนป้ายกำกับกราฟ (ถามนักเรียน)</span>
+              </button>
+
+              <button id="btnToggleBondBars" type="button" aria-pressed="false"
+                class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border-2 border-slate-300 font-bold text-xs sm:text-sm flex items-center gap-1.5 transition cursor-pointer">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                <span id="toggleBondBarsText">แสดงแท่งเปรียบเทียบสลาย vs สร้างพันธะ</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- พื้นที่กราฟ SVG ขนาดใหญ่คมชัด -->
+          <div class="mt-3 bg-slate-50 rounded-2xl border-2 border-slate-200 p-2 sm:p-4 relative">
+            <svg id="energyDiagramSvg" viewBox="0 0 760 410" class="w-full h-auto select-none" role="img" aria-label="กราฟการเปลี่ยนแปลงพลังงานของปฏิกิริยาเคมี">
+              <defs>
+                <!-- หัวลูกศรต่างๆ -->
+                <marker id="arrowAxis" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                  <path d="M 0 1 L 10 5 L 0 9 z" fill="#334155" />
+                </marker>
+                <marker id="arrowEaUp" viewBox="0 0 10 10" refX="5" refY="2" markerWidth="6" markerHeight="6" orient="auto">
+                  <path d="M 1 9 L 5 1 L 9 9 z" fill="#0284c7" />
+                </marker>
+                <marker id="arrowReleaseDown" viewBox="0 0 10 10" refX="5" refY="8" markerWidth="6" markerHeight="6" orient="auto">
+                  <path d="M 1 1 L 5 9 L 9 1 z" fill="#ea580c" />
+                </marker>
+                <marker id="arrowDeltaUp" viewBox="0 0 10 10" refX="5" refY="2" markerWidth="7" markerHeight="7" orient="auto">
+                  <path d="M 1 9 L 5 1 L 9 9 z" fill="#0369a1" />
+                </marker>
+                <marker id="arrowDeltaDown" viewBox="0 0 10 10" refX="5" refY="8" markerWidth="7" markerHeight="7" orient="auto">
+                  <path d="M 1 1 L 5 9 L 9 1 z" fill="#dc2626" />
+                </marker>
+                <!-- เงาเรืองแสงของลูกบอลติดตามกราฟ -->
+                <filter id="ballGlow" x="-40%" y="-40%" width="180%" height="180%">
+                  <feGaussianBlur stdDeviation="4" result="blur" />
+                  <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                </filter>
+              </defs>
+
+              <!-- เส้นกริดพื้นหลังกราฟ -->
+              <g stroke="#e2e8f0" stroke-width="1">
+                <line x1="90" y1="60" x2="620" y2="60" />
+                <line x1="90" y1="120" x2="620" y2="120" />
+                <line x1="90" y1="180" x2="620" y2="180" />
+                <line x1="90" y1="240" x2="620" y2="240" />
+                <line x1="90" y1="300" x2="620" y2="300" />
+              </g>
+
+              <!-- แกนตั้ง (พลังงาน) และแกนนอน (การดำเนินไปของปฏิกิริยา) -->
+              <line x1="90" y1="350" x2="90" y2="32" stroke="#334155" stroke-width="3.5" marker-end="url(#arrowAxis)" />
+              <line x1="90" y1="350" x2="635" y2="350" stroke="#334155" stroke-width="3.5" marker-end="url(#arrowAxis)" />
+
+              <!-- ชื่อแกนตั้ง -->
+              <text x="32" y="190" transform="rotate(-90 32 190)" text-anchor="middle" fill="#0f172a" font-size="17" font-weight="800">
+                พลังงาน (kJ/mol)
+              </text>
+              <text x="78" y="55" text-anchor="end" fill="#64748b" font-size="13" font-weight="700">สูง</text>
+              <text x="78" y="342" text-anchor="end" fill="#64748b" font-size="13" font-weight="700">ต่ำ</text>
+
+              <!-- ชื่อแกนนอน -->
+              <text x="360" y="392" text-anchor="middle" fill="#0f172a" font-size="17" font-weight="800">
+                การดำเนินไปของปฏิกิริยา (Reaction Progress)
+              </text>
+
+              <!-- เส้นประอ้างอิงระดับพลังงาน สารตั้งต้น (Reactants) และ ผลิตภัณฑ์ (Products) -->
+              <line id="refLineReactant" x1="90" y1="260" x2="560" y2="260" stroke="#64748b" stroke-width="2" stroke-dasharray="7 5" />
+              <line id="refLineProduct" x1="90" y1="150" x2="585" y2="150" stroke="#64748b" stroke-width="2" stroke-dasharray="7 5" />
+              <line id="refLinePeak" x1="255" y1="75" x2="430" y2="75" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4 4" />
+
+              <!-- เส้นโค้งกราฟพลังงานหลัก (พื้นหลังสีจาง) -->
+              <path id="energyCurveBg" d="" fill="none" stroke="#cbd5e1" stroke-width="7" stroke-linecap="round" />
+
+              <!-- เส้นโค้งกราฟพลังงานส่วนที่ดำเนินไปแล้ว (สีเข้มตามธีม) -->
+              <path id="energyCurveActive" d="" fill="none" stroke="#0284c7" stroke-width="7" stroke-linecap="round" />
+
+              <!-- กลุ่มป้ายกำกับและลูกศรบนกราฟ (สามารถกดซ่อน/แสดงได้สำหรับครูตั้งคำถาม) -->
+              <g id="diagramLabelsGroup">
+                <!-- ป้ายสารตั้งต้น -->
+                <rect x="102" y="224" width="128" height="30" rx="8" fill="#1e293b" />
+                <text x="166" y="244" text-anchor="middle" fill="#ffffff" font-size="14" font-weight="800">
+                  สารตั้งต้น (Reactants)
+                </text>
+
+                <!-- ป้ายผลิตภัณฑ์ -->
+                <rect id="productLabelBox" x="458" y="114" width="134" height="30" rx="8" fill="#0369a1" />
+                <text id="productLabelText" x="525" y="134" text-anchor="middle" fill="#ffffff" font-size="14" font-weight="800">
+                  ผลิตภัณฑ์ (Products)
+                </text>
+
+                <!-- จุดยอดสภาวะแทรนซิชัน -->
+                <text id="peakTitleText" x="315" y="54" text-anchor="middle" fill="#475569" font-size="13.5" font-weight="800">
+                  สภาวะแทรนซิชัน (สลายพันธะเสร็จสิ้น)
+                </text>
+
+                <!-- ลูกศรช่วงขาขึ้น: พลังงานกระตุ้น (Ea) / ขั้นสลายพันธะ -->
+                <line id="arrowEaLine" x1="268" y1="256" x2="268" y2="82" stroke="#0284c7" stroke-width="3.5" marker-end="url(#arrowEaUp)" />
+                <rect id="eaTagBg" x="150" y="142" width="110" height="44" rx="8" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5" />
+                <text x="205" y="160" text-anchor="middle" fill="#0369a1" font-size="13" font-weight="800">พลังงานกระตุ้น (Ea)</text>
+                <text x="205" y="177" text-anchor="middle" fill="#0284c7" font-size="12" font-weight="700">สลายพันธะ (ดูด E)</text>
+
+                <!-- ลูกศรช่วงขาลง: ขั้นสร้างพันธะใหม่ (คายพลังงาน) -->
+                <line id="arrowBondFormLine" x1="372" y1="80" x2="372" y2="144" stroke="#ea580c" stroke-width="3.5" marker-end="url(#arrowReleaseDown)" />
+                <rect id="bondFormTagBg" x="382" y="92" width="116" height="42" rx="8" fill="#ffedd5" stroke="#ea580c" stroke-width="1.5" />
+                <text x="440" y="110" text-anchor="middle" fill="#9a3412" font-size="12.5" font-weight="800">สร้างพันธะใหม่</text>
+                <text x="440" y="126" text-anchor="middle" fill="#ea580c" font-size="12" font-weight="700">(คายพลังงาน)</text>
+
+                <!-- ลูกศรผลต่างพลังงานสุทธิ (ΔE) -->
+                <line id="arrowDeltaELine" x1="545" y1="256" x2="545" y2="156" stroke="#0369a1" stroke-width="4.5" marker-end="url(#arrowDeltaUp)" />
+                <rect id="deltaETagBg" x="488" y="182" width="114" height="46" rx="10" fill="#0369a1" />
+                <text id="deltaETitleText" x="545" y="201" text-anchor="middle" fill="#ffffff" font-size="14" font-weight="800">ΔE = +65 kJ</text>
+                <text id="deltaESubText" x="545" y="219" text-anchor="middle" fill="#bae6fd" font-size="12" font-weight="700">ดูดพลังงานสุทธิ (+)</text>
+              </g>
+
+              <!-- กลุ่มเปรียบเทียบแท่งพลังงาน สลายพันธะ vs สร้างพันธะ (เปิด/ปิดได้) -->
+              <g id="bondComparisonBarsGroup" class="hidden">
+                <rect x="630" y="45" width="120" height="305" rx="14" fill="#ffffff" stroke="#cbd5e1" stroke-width="2" />
+                <text x="690" y="68" text-anchor="middle" fill="#0f172a" font-size="12.5" font-weight="800">เปรียบเทียบพลังงาน</text>
+
+                <!-- แท่งดูดพลังงาน (สลายพันธะ) -->
+                <rect id="barAbsorbRect" x="646" y="110" width="36" height="190" rx="6" fill="#0284c7" />
+                <text x="664" y="318" text-anchor="middle" fill="#0369a1" font-size="11" font-weight="800">สลาย</text>
+                <text x="664" y="332" text-anchor="middle" fill="#0369a1" font-size="10.5" font-weight="700">(ดูด E)</text>
+
+                <!-- แท่งคายพลังงาน (สร้างพันธะ) -->
+                <rect id="barReleaseRect" x="698" y="175" width="36" height="125" rx="6" fill="#ea580c" />
+                <text x="716" y="318" text-anchor="middle" fill="#9a3412" font-size="11" font-weight="800">สร้าง</text>
+                <text x="716" y="332" text-anchor="middle" fill="#9a3412" font-size="10.5" font-weight="700">(คาย E)</text>
+              </g>
+
+              <!-- เส้นประแนวตั้งและลูกบอลเคลื่อนที่ติดตามความคืบหน้าของปฏิกิริยา -->
+              <line id="trackerDropLine" x1="120" y1="260" x2="120" y2="350" stroke="#0284c7" stroke-width="2" stroke-dasharray="4 4" />
+              <g id="energyTrackerBall" transform="translate(120, 260)" filter="url(#ballGlow)">
+                <circle r="13" fill="#ffffff" stroke="#0284c7" stroke-width="4.5" />
+                <circle r="5" fill="#0284c7" />
+              </g>
+            </svg>
+          </div>
+        </div>
+
+        <!-- แถบข้อความสรุปผลการเปลี่ยนแปลงแบบเข้าใจง่ายด้านล่างกราฟ -->
+        <div id="graphExplanationBox" class="rounded-2xl bg-sky-50 border-2 border-sky-200 p-4 flex flex-col sm:flex-row items-start sm:items-center gap-3.5">
+          <div id="graphExpIcon" class="w-11 h-11 rounded-xl bg-sky-600 text-white flex items-center justify-center font-black text-xl shrink-0">
+            💡
+          </div>
+          <div class="text-sm sm:text-base text-slate-800 leading-relaxed">
+            <strong id="graphExpHeadline" class="text-sky-950 font-extrabold block text-base sm:text-lg">
+              สรุปหลักการ: ปฏิกิริยาดูดพลังงาน (Endothermic Reaction)
+            </strong>
+            <span id="graphExpBody">
+              ผลิตภัณฑ์มีพลังงานสูงกว่าสารตั้งต้น (ΔE เป็นบวก) เนื่องจากระบบดูดพลังงานความร้อนจากสิ่งแวดล้อมเข้าไปใช้ในการสลายพันธะมากกว่าพลังงานที่คายออกมาเมื่อสร้างพันธะใหม่ ส่งผลให้<strong>สิ่งแวดล้อมมีอุณหภูมิลดลง (เย็นลง)</strong>
+            </span>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- =================================================================== -->
+    <!-- มุมมองโหมดเปรียบเทียบ 2 กระบวนการพร้อมกัน (MODE 3: COMPARE) -->
+    <!-- =================================================================== -->
+    <div id="compareModeView" class="hidden grid-cols-1 lg:grid-cols-2 gap-5">
+      <!-- ฝั่งซ้าย: กระบวนการดูดพลังงาน -->
+      <section class="bg-white rounded-3xl border-2 border-sky-300 shadow-md p-4 sm:p-5 flex flex-col gap-4">
+        <div class="flex items-center justify-between gap-2 pb-2.5 border-b-2 border-sky-100">
+          <div class="flex items-center gap-2.5">
+            <span class="w-9 h-9 rounded-xl bg-sky-600 text-white font-black flex items-center justify-center text-lg">1</span>
+            <div>
+              <h2 class="text-lg sm:text-xl font-extrabold text-sky-950">กระบวนการดูดพลังงาน (Endothermic)</h2>
+              <p class="text-xs sm:text-sm text-sky-700 font-semibold">ตัวอย่าง: ซองประคบเย็น (NH₄NO₃ + H₂O)</p>
+            </div>
+          </div>
+          <div class="bg-slate-900 text-sky-400 px-3.5 py-1.5 rounded-xl font-black text-lg sm:text-xl border border-slate-700">
+            <span id="cmpEndoTemp">25.0 °C</span>
+          </div>
+        </div>
+
+        <!-- บีกเกอร์เปรียบเทียบฝั่งดูดพลังงาน -->
+        <div class="bg-sky-50/70 rounded-2xl border border-sky-200 p-2.5 flex items-center justify-center">
+          <svg viewBox="0 0 340 165" class="w-full max-w-[330px] h-auto">
+            <!-- ออร่าความเย็น -->
+            <ellipse cx="170" cy="95" rx="105" ry="58" fill="#0ea5e9" opacity="0.16" class="anim-cold-pulse" />
+            <!-- ฐานและบีกเกอร์ -->
+            <rect x="105" y="142" width="130" height="8" rx="4" fill="#334155" />
+            <path d="M120 68 L220 68 L220 132 Q220 139 213 139 L127 139 Q120 139 120 132 Z" fill="#0284c7" opacity="0.82" />
+            <path d="M116 42 L120 46 L120 132 Q120 140 128 140 L212 140 Q220 140 220 132 L220 46 L224 42" fill="none" stroke="#1e293b" stroke-width="3.5" stroke-linecap="round" />
+            <text x="170" y="106" text-anchor="middle" fill="#ffffff" font-size="12.5" font-weight="800">ระบบดูดความร้อน</text>
+            <!-- ลูกศรชี้เข้า -->
+            <g class="anim-in-left">
+              <path d="M22 86 L82 86 L82 78 L104 92 L82 106 L82 98 L22 98 Z" fill="#0284c7" />
+            </g>
+            <g class="anim-in-right">
+              <path d="M318 86 L258 86 L258 78 L236 92 L258 106 L258 98 L318 98 Z" fill="#0284c7" />
+            </g>
+            <text x="170" y="24" text-anchor="middle" fill="#0369a1" font-size="13" font-weight="800">
+              ความร้อนจากสิ่งแวดล้อม → เข้าสู่ระบบ (เย็นลง ❄️)
+            </text>
+          </svg>
+        </div>
+
+        <!-- กราฟเปรียบเทียบฝั่งดูดพลังงาน -->
+        <div class="bg-slate-50 rounded-2xl border border-slate-200 p-2.5">
+          <svg viewBox="0 0 460 250" class="w-full h-auto">
+            <line x1="50" y1="215" x2="50" y2="20" stroke="#334155" stroke-width="2.5" />
+            <line x1="50" y1="215" x2="435" y2="215" stroke="#334155" stroke-width="2.5" />
+            <text x="18" y="120" transform="rotate(-90 18 120)" text-anchor="middle" fill="#0f172a" font-size="12.5" font-weight="800">พลังงาน (kJ)</text>
+            <text x="245" y="240" text-anchor="middle" fill="#0f172a" font-size="12.5" font-weight="800">การดำเนินไปของปฏิกิริยา</text>
+
+            <!-- เส้นอ้างอิง -->
+            <line x1="50" y1="165" x2="380" y2="165" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="5 4" />
+            <line x1="50" y1="95" x2="400" y2="95" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="5 4" />
+
+            <!-- เส้นโค้งดูดพลังงาน -->
+            <path id="cmpEndoCurveBg" d="" fill="none" stroke="#cbd5e1" stroke-width="5" stroke-linecap="round" />
+            <path id="cmpEndoCurveActive" d="" fill="none" stroke="#0284c7" stroke-width="5" stroke-linecap="round" />
+
+            <!-- ป้ายกำกับ -->
+            <text x="105" y="184" text-anchor="middle" fill="#1e293b" font-size="12" font-weight="800">สารตั้งต้น (ต่ำ)</text>
+            <text x="345" y="83" text-anchor="middle" fill="#0369a1" font-size="12" font-weight="800">ผลิตภัณฑ์ (สูง)</text>
+            <!-- ลูกศร ΔE ชี้ขึ้น -->
+            <line x1="365" y1="162" x2="365" y2="100" stroke="#0369a1" stroke-width="3.5" marker-end="url(#arrowDeltaUp)" />
+            <rect x="373" y="114" width="66" height="32" rx="6" fill="#0369a1" />
+            <text x="406" y="134" text-anchor="middle" fill="#ffffff" font-size="12" font-weight="800">+ΔE (ดูด)</text>
+
+            <!-- ลูกบอลติดตาม -->
+            <circle id="cmpEndoBall" cx="70" cy="165" r="8.5" fill="#ffffff" stroke="#0284c7" stroke-width="3.5" />
+          </svg>
+        </div>
+
+        <div class="rounded-xl bg-sky-50 border border-sky-200 p-3 text-sm font-semibold text-sky-950">
+          <strong>จุดเด่น:</strong> ผลิตภัณฑ์มีพลังงานสูงกว่าสารตั้งต้น (<strong>+ΔE</strong>) ระบบดูดความร้อนเข้า สิ่งแวดล้อมจึง<strong>อุณหภูมิลดลง</strong>
+        </div>
+      </section>
+
+      <!-- ฝั่งขวา: กระบวนการคายพลังงาน -->
+      <section class="bg-white rounded-3xl border-2 border-orange-300 shadow-md p-4 sm:p-5 flex flex-col gap-4">
+        <div class="flex items-center justify-between gap-2 pb-2.5 border-b-2 border-orange-100">
+          <div class="flex items-center gap-2.5">
+            <span class="w-9 h-9 rounded-xl bg-orange-600 text-white font-black flex items-center justify-center text-lg">2</span>
+            <div>
+              <h2 class="text-lg sm:text-xl font-extrabold text-orange-950">กระบวนการคายพลังงาน (Exothermic)</h2>
+              <p class="text-xs sm:text-sm text-orange-700 font-semibold">ตัวอย่าง: แผ่นร้อนกันหนาว (CaCl₂ + H₂O)</p>
+            </div>
+          </div>
+          <div class="bg-slate-900 text-orange-400 px-3.5 py-1.5 rounded-xl font-black text-lg sm:text-xl border border-slate-700">
+            <span id="cmpExoTemp">25.0 °C</span>
+          </div>
+        </div>
+
+        <!-- บีกเกอร์เปรียบเทียบฝั่งคายพลังงาน -->
+        <div class="bg-orange-50/70 rounded-2xl border border-orange-200 p-2.5 flex items-center justify-center">
+          <svg viewBox="0 0 340 165" class="w-full max-w-[330px] h-auto">
+            <!-- ออร่าความร้อน -->
+            <ellipse cx="170" cy="95" rx="105" ry="58" fill="#f97316" opacity="0.18" class="anim-cold-pulse" />
+            <!-- ฐานและบีกเกอร์ -->
+            <rect x="105" y="142" width="130" height="8" rx="4" fill="#334155" />
+            <path d="M120 68 L220 68 L220 132 Q220 139 213 139 L127 139 Q120 139 120 132 Z" fill="#ea580c" opacity="0.85" />
+            <path d="M116 42 L120 46 L120 132 Q120 140 128 140 L212 140 Q220 140 220 132 L220 46 L224 42" fill="none" stroke="#1e293b" stroke-width="3.5" stroke-linecap="round" />
+            <text x="170" y="106" text-anchor="middle" fill="#ffffff" font-size="12.5" font-weight="800">ระบบคายความร้อน</text>
+            <!-- ลูกศรชี้ออก -->
+            <g class="anim-out-left">
+              <path d="M104 86 L44 86 L44 78 L22 92 L44 106 L44 98 L104 98 Z" fill="#ea580c" />
+            </g>
+            <g class="anim-out-right">
+              <path d="M236 86 L296 86 L296 78 L318 92 L296 106 L296 98 L236 98 Z" fill="#ea580c" />
+            </g>
+            <text x="170" y="24" text-anchor="middle" fill="#c2410c" font-size="13" font-weight="800">
+              ความร้อนจากระบบ → ออกสู่สิ่งแวดล้อม (ร้อนขึ้น 🔥)
+            </text>
+          </svg>
+        </div>
+
+        <!-- กราฟเปรียบเทียบฝั่งคายพลังงาน -->
+        <div class="bg-slate-50 rounded-2xl border border-slate-200 p-2.5">
+          <svg viewBox="0 0 460 250" class="w-full h-auto">
+            <line x1="50" y1="215" x2="50" y2="20" stroke="#334155" stroke-width="2.5" />
+            <line x1="50" y1="215" x2="435" y2="215" stroke="#334155" stroke-width="2.5" />
+            <text x="18" y="120" transform="rotate(-90 18 120)" text-anchor="middle" fill="#0f172a" font-size="12.5" font-weight="800">พลังงาน (kJ)</text>
+            <text x="245" y="240" text-anchor="middle" fill="#0f172a" font-size="12.5" font-weight="800">การดำเนินไปของปฏิกิริยา</text>
+
+            <!-- เส้นอ้างอิง -->
+            <line x1="50" y1="100" x2="380" y2="100" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="5 4" />
+            <line x1="50" y1="175" x2="400" y2="175" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="5 4" />
+
+            <!-- เส้นโค้งคายพลังงาน -->
+            <path id="cmpExoCurveBg" d="" fill="none" stroke="#cbd5e1" stroke-width="5" stroke-linecap="round" />
+            <path id="cmpExoCurveActive" d="" fill="none" stroke="#ea580c" stroke-width="5" stroke-linecap="round" />
+
+            <!-- ป้ายกำกับ -->
+            <text x="105" y="88" text-anchor="middle" fill="#1e293b" font-size="12" font-weight="800">สารตั้งต้น (สูง)</text>
+            <text x="345" y="195" text-anchor="middle" fill="#c2410c" font-size="12" font-weight="800">ผลิตภัณฑ์ (ต่ำ)</text>
+            <!-- ลูกศร ΔE ชี้ลง -->
+            <line x1="365" y1="104" x2="365" y2="170" stroke="#dc2626" stroke-width="3.5" marker-end="url(#arrowDeltaDown)" />
+            <rect x="373" y="122" width="66" height="32" rx="6" fill="#dc2626" />
+            <text x="406" y="142" text-anchor="middle" fill="#ffffff" font-size="12" font-weight="800">-ΔE (คาย)</text>
+
+            <!-- ลูกบอลติดตาม -->
+            <circle id="cmpExoBall" cx="70" cy="100" r="8.5" fill="#ffffff" stroke="#ea580c" stroke-width="3.5" />
+          </svg>
+        </div>
+
+        <div class="rounded-xl bg-orange-50 border border-orange-200 p-3 text-sm font-semibold text-orange-950">
+          <strong>จุดเด่น:</strong> ผลิตภัณฑ์มีพลังงานต่ำกว่าสารตั้งต้น (<strong>-ΔE</strong>) ระบบคายความร้อนออก สิ่งแวดล้อมจึง<strong>อุณหภูมิสูงขึ้น</strong>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- ===================================================================== -->
+  <!-- 3. แผงควบคุมด้านล่างสำหรับครูผู้สอน (TEACHER CONTROL BAR) -->
+  <!-- ===================================================================== -->
+  <footer class="bg-white border-t-2 border-slate-200 shadow-lg sticky bottom-0 z-30">
+    <div class="max-w-[1600px] mx-auto px-4 sm:px-6 py-3">
+      <div class="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
+        <!-- กลุ่มปุ่มเล่น / หยุด / รีเซ็ต / ความเร็ว -->
+        <div class="flex flex-wrap items-center gap-2">
+          <button id="btnPlay" type="button"
+            class="px-5 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-base sm:text-lg flex items-center gap-2 shadow-sm transition cursor-pointer">
+            <span>▶</span>
+            <span>เริ่มปฏิกิริยา</span>
+          </button>
+
+          <button id="btnPause" type="button"
+            class="px-4 py-2.5 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-base sm:text-lg flex items-center gap-2 shadow-sm transition cursor-pointer">
+            <span>⏸</span>
+            <span>หยุดชั่วคราว</span>
+          </button>
+
+          <button id="btnReset" type="button"
+            class="px-4 py-2.5 rounded-2xl bg-slate-200 hover:bg-slate-300 text-slate-900 font-extrabold text-base sm:text-lg flex items-center gap-2 transition cursor-pointer">
+            <span>↺</span>
+            <span>รีเซ็ต</span>
+          </button>
+
+          <!-- ตัวเลือกความเร็ว 0.5x / 1x -->
+          <div class="flex items-center bg-slate-100 p-1 rounded-2xl border border-slate-300 ml-1">
+            <span class="text-xs font-bold text-slate-500 px-2">ความเร็ว:</span>
+            <button id="btnSpeedHalf" type="button" data-speed="0.5"
+              class="speed-btn px-3 py-1.5 rounded-xl text-sm font-extrabold text-slate-700 hover:bg-white transition cursor-pointer">
+              0.5x (ช้า)
+            </button>
+            <button id="btnSpeedNormal" type="button" data-speed="1"
+              class="speed-btn px-3 py-1.5 rounded-xl text-sm font-extrabold bg-slate-900 text-white shadow-sm transition cursor-pointer">
+              1x (ปกติ)
+            </button>
+          </div>
+        </div>
+
+        <!-- แถบเลื่อนความคืบหน้า (Progress Slider 0% - 100%) และปุ่มลัดช่วงสำคัญ -->
+        <div class="flex-1 flex flex-col gap-1 lg:max-w-2xl">
+          <div class="flex items-center justify-between text-xs sm:text-sm font-extrabold text-slate-700">
+            <span>แถบควบคุมความคืบหน้า (ลากเพื่ออธิบายทีละขั้น):</span>
+            <span id="progressPercentText" class="px-2.5 py-0.5 rounded-lg bg-slate-900 text-white">0%</span>
+          </div>
+          <input id="progressSlider" type="range" min="0" max="100" step="0.5" value="0"
+            class="w-full teacher-slider" aria-label="แถบเลื่อนความคืบหน้าของปฏิกิริยา" />
+          <div class="flex justify-between text-[11px] sm:text-xs font-bold text-slate-500">
+            <button type="button" data-jump="0" class="jump-stage-btn hover:text-slate-900 underline cursor-pointer">0% สารตั้งต้น</button>
+            <button type="button" data-jump="42" class="jump-stage-btn hover:text-amber-700 underline cursor-pointer">42% จุดสูงสุด (สลายพันธะ)</button>
+            <button type="button" data-jump="100" class="jump-stage-btn hover:text-emerald-700 underline cursor-pointer">100% ผลิตภัณฑ์สมบูรณ์</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ===================================================================== -->
+  <!-- 4. หน้าต่างสรุปตารางเปรียบเทียบ 2 กระบวนการ (ม.3) MODAL -->
+  <!-- ===================================================================== -->
+  <div id="summaryModal" class="fixed inset-0 z-50 hidden bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="bg-white rounded-3xl max-w-5xl w-full max-h-[90vh] overflow-y-auto border-2 border-slate-300 shadow-2xl p-5 sm:p-7">
+      <div class="flex items-center justify-between gap-3 pb-4 border-b-2 border-slate-200">
+        <div>
+          <span class="px-3 py-1 rounded-lg bg-emerald-100 text-emerald-900 text-xs sm:text-sm font-extrabold">
+            สรุปบทเรียนวิทยาศาสตร์ ชั้นมัธยมศึกษาปีที่ 3
+          </span>
+          <h2 id="modalTitle" class="text-xl sm:text-2xl font-extrabold text-slate-900 mt-1">
+            ตารางเปรียบเทียบกระบวนการดูดพลังงาน และ กระบวนการคายพลังงาน
+          </h2>
+        </div>
+        <button id="btnCloseModal" type="button"
+          class="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-900 font-extrabold text-base cursor-pointer">
+          ✕ ปิดหน้าต่าง
+        </button>
+      </div>
+
+      <div class="mt-5 overflow-x-auto">
+        <table class="w-full text-left border-collapse rounded-2xl overflow-hidden text-sm sm:text-base">
+          <thead>
+            <tr class="bg-slate-900 text-white">
+              <th class="p-3.5 sm:p-4 font-extrabold border border-slate-700 w-1/4">ประเด็นเปรียบเทียบ</th>
+              <th class="p-3.5 sm:p-4 font-extrabold bg-sky-800 border border-slate-700 w-[37.5%]">
+                1. กระบวนการดูดพลังงาน (Endothermic) ❄️
+              </th>
+              <th class="p-3.5 sm:p-4 font-extrabold bg-orange-700 border border-slate-700 w-[37.5%]">
+                2. กระบวนการคายพลังงาน (Exothermic) 🔥
+              </th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-200 font-medium">
+            <tr class="bg-white">
+              <td class="p-3.5 font-extrabold text-slate-900 bg-slate-50 border border-slate-200">ทิศทางการถ่ายโอนความร้อน</td>
+              <td class="p-3.5 text-sky-950 border border-slate-200">ถ่ายโอนจาก <strong>สิ่งแวดล้อม → เข้าสู่ระบบ</strong></td>
+              <td class="p-3.5 text-orange-950 border border-slate-200">ถ่ายโอนจาก <strong>ระบบ → ออกสู่สิ่งแวดล้อม</strong></td>
+            </tr>
+            <tr class="bg-slate-50/60">
+              <td class="p-3.5 font-extrabold text-slate-900 bg-slate-50 border border-slate-200">พลังงานสลายพันธะ vs สร้างพันธะ</td>
+              <td class="p-3.5 text-slate-800 border border-slate-200">พลังงานที่ใช้สลายพันธะเดิม <strong>มากกว่า</strong> พลังงานที่คายเมื่อสร้างพันธะใหม่</td>
+              <td class="p-3.5 text-slate-800 border border-slate-200">พลังงานที่ใช้สลายพันธะเดิม <strong>น้อยกว่า</strong> พลังงานที่คายเมื่อสร้างพันธะใหม่</td>
+            </tr>
+            <tr class="bg-white">
+              <td class="p-3.5 font-extrabold text-slate-900 bg-slate-50 border border-slate-200">ระดับพลังงานบนกราฟ</td>
+              <td class="p-3.5 text-sky-900 font-bold border border-slate-200">พลังงานของผลิตภัณฑ์ <strong>สูงกว่า</strong> สารตั้งต้น</td>
+              <td class="p-3.5 text-orange-900 font-bold border border-slate-200">พลังงานของผลิตภัณฑ์ <strong>ต่ำกว่า</strong> สารตั้งต้น</td>
+            </tr>
+            <tr class="bg-slate-50/60">
+              <td class="p-3.5 font-extrabold text-slate-900 bg-slate-50 border border-slate-200">ผลต่างพลังงานสุทธิ (ΔE)</td>
+              <td class="p-3.5 text-sky-900 font-extrabold border border-slate-200">ค่าเป็นบวก (+ΔE) ลูกศรชี้ขึ้น</td>
+              <td class="p-3.5 text-orange-900 font-extrabold border border-slate-200">ค่าเป็นลบ (-ΔE) ลูกศรชี้ลง</td>
+            </tr>
+            <tr class="bg-white">
+              <td class="p-3.5 font-extrabold text-slate-900 bg-slate-50 border border-slate-200">อุณหภูมิของสิ่งแวดล้อม (บีกเกอร์)</td>
+              <td class="p-3.5 text-sky-800 font-bold border border-slate-200">อุณหภูมิลดลง (จับภาชนะแล้วรู้สึกเย็นลง)</td>
+              <td class="p-3.5 text-orange-800 font-bold border border-slate-200">อุณหภูมิสูงขึ้น (จับภาชนะแล้วรู้สึกร้อนขึ้น)</td>
+            </tr>
+            <tr class="bg-slate-50/60">
+              <td class="p-3.5 font-extrabold text-slate-900 bg-slate-50 border border-slate-200">ตัวอย่างในชีวิตประจำวัน</td>
+              <td class="p-3.5 text-slate-800 border border-slate-200">ซองประคบเย็น (NH₄NO₃ + น้ำ), เบกกิ้งโซดา + น้ำส้มสายชู, การสังเคราะห์ด้วยแสง</td>
+              <td class="p-3.5 text-slate-800 border border-slate-200">แผ่นร้อนกันหนาว (CaCl₂ + น้ำ), ปฏิกิริยากรด + เบส, การเผาไหม้เชื้อเพลิง</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- 5. JAVASCRIPT ควบคุมการทำงานทั้งหมดของแบบจำลองวิทยาศาสตร์ -->
+  <!-- ===================================================================== -->
+  <script>
+    (function () {
+      'use strict';
+
+      // -------------------------------------------------------------------
+      // ฐานข้อมูลปฏิกิริยาเคมีระดับชั้น ม.3 (แบ่งตามกระบวนการดูดและคายพลังงาน)
+      // -------------------------------------------------------------------
+      const REACTIONS = {
+        endo: [
+          {
+            id: 'cold_pack',
+            name: '1. ซองประคบเย็น: แอมโมเนียมไนเตรต + น้ำ',
+            equation: 'NH₄NO₃(s) + H₂O(l) + พลังงานความร้อน → NH₄⁺(aq) + NO₃⁻(aq)',
+            startTemp: 25.0,
+            endTemp: 11.5,
+            deltaE: '+65 kJ/mol',
+            yReactant: 265,
+            yPeak: 75,
+            yProduct: 155,
+            hasBubbles: false,
+            liqStart: ['#38bdf8', '#0284c7'],
+            liqEnd: ['#bae6fd', '#0369a1'],
+            feelingEnd: 'สัมผัส: เย็นจัด (11.5 °C) ❄️',
+            summaryHeadline: 'สรุปหลักการ: ซองประคบเย็น (กระบวนการดูดพลังงาน)',
+            summaryText:
+              'เมื่อแอมโมเนียมไนเตรตละลายน้ำ ระบบจะดูดพลังงานความร้อนจากน้ำและสิ่งแวดล้อมรอบข้างเข้าไปใช้แยกไอออน (สลายแรงยึดเหนี่ยว) มากกว่าพลังงานที่คายออก ทำให้อุณหภูมิลดลงจาก 25.0 °C เหลือ 11.5 °C',
+          },
+          {
+            id: 'baking_soda',
+            name: '2. เบกกิ้งโซดา + น้ำส้มสายชู (เกิดฟองแก๊ส CO₂)',
+            equation: 'NaHCO₃(s) + CH₃COOH(aq) + พลังงาน → CH₃COONa(aq) + H₂O(l) + CO₂(g)',
+            startTemp: 25.0,
+            endTemp: 16.0,
+            deltaE: '+48 kJ/mol',
+            yReactant: 255,
+            yPeak: 85,
+            yProduct: 170,
+            hasBubbles: true,
+            liqStart: ['#7dd3fc', '#0ea5e9'],
+            liqEnd: ['#e0f2fe', '#0284c7'],
+            feelingEnd: 'สัมผัส: เย็นลง (16.0 °C) 🫧',
+            summaryHeadline: 'สรุปหลักการ: เบกกิ้งโซดาทำปฏิกิริยากับน้ำส้มสายชู (ดูดพลังงาน)',
+            summaryText:
+              'ปฏิกิริยานี้เกิดฟองแก๊สคาร์บอนไดออกไซด์ (CO₂) ฟู่ขึ้น พร้อมกับดูดพลังงานความร้อนจากสารละลายและบีกเกอร์เข้าไปในการสลายพันธะ ทำให้เทอร์โมมิเตอร์วัดอุณหภูมิได้ลดลง',
+          },
+          {
+            id: 'photosynthesis',
+            name: '3. การสังเคราะห์ด้วยแสงของพืช (ดูดพลังงานแสง/ความร้อน)',
+            equation: '6CO₂(g) + 6H₂O(l) + พลังงานแสง → C₆H₁₂O₆(aq) + 6O₂(g)',
+            startTemp: 25.0,
+            endTemp: 19.5,
+            deltaE: '+2803 kJ/mol',
+            yReactant: 280,
+            yPeak: 68,
+            yProduct: 135,
+            hasBubbles: true,
+            liqStart: ['#34d399', '#059669'],
+            liqEnd: ['#10b981', '#047857'],
+            feelingEnd: 'ดูดพลังงานแสงสะสมในกลูโคส 🌿',
+            summaryHeadline: 'สรุปหลักการ: การสังเคราะห์ด้วยแสง (กระบวนการดูดพลังงาน)',
+            summaryText:
+              'พืชดูดพลังงานแสงเข้าไปสลายพันธะของแก๊สคาร์บอนไดออกไซด์และน้ำ แล้วสร้างเป็นน้ำตาลกลูโคสที่มีพลังงานเคมีสะสมอยู่สูงกว่าสารตั้งต้นอย่างมาก',
+          },
+        ],
+        exo: [
+          {
+            id: 'hot_pack',
+            name: '1. แผ่นร้อนกันหนาว: แคลเซียมคลอไรด์ + น้ำ',
+            equation: 'CaCl₂(s) + H₂O(l) → Ca²⁺(aq) + 2Cl⁻(aq) + พลังงานความร้อน',
+            startTemp: 25.0,
+            endTemp: 56.0,
+            deltaE: '-82 kJ/mol',
+            yReactant: 150,
+            yPeak: 75,
+            yProduct: 270,
+            hasBubbles: false,
+            liqStart: ['#fdba74', '#ea580c'],
+            liqEnd: ['#fca5a5', '#dc2626'],
+            feelingEnd: 'สัมผัส: ร้อนจัด (56.0 °C) 🔥',
+            summaryHeadline: 'สรุปหลักการ: แผ่นร้อนกันหนาว (กระบวนการคายพลังงาน)',
+            summaryText:
+              'เมื่อแคลเซียมคลอไรด์ละลายน้ำ ระบบจะคายพลังงานความร้อนออกมาสู่สิ่งแวดล้อมมากกว่าพลังงานที่ใช้แยกไอออน ทำให้อุณหภูมิพุ่งสูงขึ้นจาก 25.0 °C เป็น 56.0 °C',
+          },
+          {
+            id: 'neutralization',
+            name: '2. ปฏิกิริยาสะเทิน: กรดไฮโดรคลอริก + โซเดียมไฮดรอกไซด์',
+            equation: 'HCl(aq) + NaOH(aq) → NaCl(aq) + H₂O(l) + พลังงานความร้อน',
+            startTemp: 25.0,
+            endTemp: 43.5,
+            deltaE: '-57 kJ/mol',
+            yReactant: 165,
+            yPeak: 85,
+            yProduct: 260,
+            hasBubbles: false,
+            liqStart: ['#fed7aa', '#f97316'],
+            liqEnd: ['#fdba74', '#ea580c'],
+            feelingEnd: 'สัมผัส: อุ่นถึงร้อน (43.5 °C) 🌡️',
+            summaryHeadline: 'สรุปหลักการ: ปฏิกิริยาระหว่างกรดกับเบส (คายพลังงาน)',
+            summaryText:
+              'ไอออน H⁺ จากกรดรวมตัวกับ OH⁻ จากเบสเกิดเป็นพันธะใหม่ของโมเลกุลน้ำ ซึ่งคายพลังงานความร้อนออกมาสูง ทำให้น้ำและบีกเกอร์มีอุณหภูมิสูงขึ้น',
+          },
+          {
+            id: 'combustion',
+            name: '3. การเผาไหม้เชื้อเพลิง (ก๊าซมีเทน + ออกซิเจน)',
+            equation: 'CH₄(g) + 2O₂(g) → CO₂(g) + 2H₂O(g) + พลังงานความร้อนและแสง',
+            startTemp: 25.0,
+            endTemp: 85.0,
+            deltaE: '-890 kJ/mol',
+            yReactant: 135,
+            yPeak: 68,
+            yProduct: 285,
+            hasBubbles: true,
+            liqStart: ['#fb923c', '#ea580c'],
+            liqEnd: ['#ef4444', '#b91c1c'],
+            feelingEnd: 'คายความร้อนและแสงสว่างสูง 🔥',
+            summaryHeadline: 'สรุปหลักการ: การเผาไหม้เชื้อเพลิง (กระบวนการคายพลังงานสูง)',
+            summaryText:
+              'การสร้างพันธะใหม่ของ CO₂ และ H₂O คายพลังงานออกมามากกว่าพลังงานกระตุ้นที่ใช้จุดติดไฟอย่างมหาศาล ทำให้ผลิตภัณฑ์เสถียรและมีพลังงานต่ำกว่าสารตั้งต้นมาก',
+          },
+        ],
+      };
+
+      // -------------------------------------------------------------------
+      // สถานะหลักของแอปพลิเคชัน (Application State)
+      // -------------------------------------------------------------------
+      const state = {
+        mode: 'endo', // 'endo' | 'exo' | 'compare'
+        selectedIndex: 0,
+        progress: 0, // 0 ถึง 100
+        isPlaying: false,
+        speed: 1, // 0.5 หรือ 1
+        showLabels: true,
+        showBondBars: false,
+        largeText: false,
+        soundEnabled: false,
+        lastTimestamp: null,
+        lastSoundMilestone: -1,
+      };
+
+      // -------------------------------------------------------------------
+      // อ้างอิง DOM Elements
+      // -------------------------------------------------------------------
+      const el = {
+        toastBanner: document.getElementById('toastBanner'),
+        modeBtnEndo: document.getElementById('modeBtnEndo'),
+        modeBtnExo: document.getElementById('modeBtnExo'),
+        modeBtnCompare: document.getElementById('modeBtnCompare'),
+        btnLargeText: document.getElementById('btnLargeText'),
+        largeTextLabel: document.getElementById('largeTextLabel'),
+        btnSoundToggle: document.getElementById('btnSoundToggle'),
+        iconSoundOff: document.getElementById('iconSoundOff'),
+        iconSoundOn: document.getElementById('iconSoundOn'),
+        btnSummaryModal: document.getElementById('btnSummaryModal'),
+        summaryModal: document.getElementById('summaryModal'),
+        btnCloseModal: document.getElementById('btnCloseModal'),
+
+        singleModeView: document.getElementById('singleModeView'),
+        compareModeView: document.getElementById('compareModeView'),
+
+        labTypeBadge: document.getElementById('labTypeBadge'),
+        reactionStageBadge: document.getElementById('reactionStageBadge'),
+        reactionSelect: document.getElementById('reactionSelect'),
+        chemicalEquationBox: document.getElementById('chemicalEquationBox'),
+
+        liqStopTop: document.getElementById('liqStopTop'),
+        liqStopBot: document.getElementById('liqStopBot'),
+        beakerLiquidSurface: document.getElementById('beakerLiquidSurface'),
+        auraStopInner: document.getElementById('auraStopInner'),
+        auraStopOuter: document.getElementById('auraStopOuter'),
+        exoHeatWaves: document.getElementById('exoHeatWaves'),
+        endoFrostEffects: document.getElementById('endoFrostEffects'),
+        stirrerBar: document.getElementById('stirrerBar'),
+        beakerBubblesGroup: document.getElementById('beakerBubblesGroup'),
+        arrowsEndoGroup: document.getElementById('arrowsEndoGroup'),
+        arrowsExoGroup: document.getElementById('arrowsExoGroup'),
+        heatDirectionCaption: document.getElementById('heatDirectionCaption'),
+
+        thermoColumn: document.getElementById('thermoColumn'),
+        thermoBulb: document.getElementById('thermoBulb'),
+        digitalTempBox: document.getElementById('digitalTempBox'),
+        digitalTempValue: document.getElementById('digitalTempValue'),
+        digitalTempDelta: document.getElementById('digitalTempDelta'),
+        tempFeelingBadge: document.getElementById('tempFeelingBadge'),
+
+        particleStepBadge: document.getElementById('particleStepBadge'),
+        particleEnergyWaves: document.getElementById('particleEnergyWaves'),
+        particleBondsLayer: document.getElementById('particleBondsLayer'),
+        particleAtomsLayer: document.getElementById('particleAtomsLayer'),
+        bondBalanceSummary: document.getElementById('bondBalanceSummary'),
+
+        btnToggleLabels: document.getElementById('btnToggleLabels'),
+        toggleLabelsText: document.getElementById('toggleLabelsText'),
+        btnToggleBondBars: document.getElementById('btnToggleBondBars'),
+        toggleBondBarsText: document.getElementById('toggleBondBarsText'),
+
+        refLineReactant: document.getElementById('refLineReactant'),
+        refLineProduct: document.getElementById('refLineProduct'),
+        refLinePeak: document.getElementById('refLinePeak'),
+        energyCurveBg: document.getElementById('energyCurveBg'),
+        energyCurveActive: document.getElementById('energyCurveActive'),
+        diagramLabelsGroup: document.getElementById('diagramLabelsGroup'),
+        productLabelBox: document.getElementById('productLabelBox'),
+        productLabelText: document.getElementById('productLabelText'),
+        arrowEaLine: document.getElementById('arrowEaLine'),
+        eaTagBg: document.getElementById('eaTagBg'),
+        arrowBondFormLine: document.getElementById('arrowBondFormLine'),
+        bondFormTagBg: document.getElementById('bondFormTagBg'),
+        arrowDeltaELine: document.getElementById('arrowDeltaELine'),
+        deltaETagBg: document.getElementById('deltaETagBg'),
+        deltaETitleText: document.getElementById('deltaETitleText'),
+        deltaESubText: document.getElementById('deltaESubText'),
+
+        bondComparisonBarsGroup: document.getElementById('bondComparisonBarsGroup'),
+        barAbsorbRect: document.getElementById('barAbsorbRect'),
+        barReleaseRect: document.getElementById('barReleaseRect'),
+
+        trackerDropLine: document.getElementById('trackerDropLine'),
+        energyTrackerBall: document.getElementById('energyTrackerBall'),
+
+        graphExplanationBox: document.getElementById('graphExplanationBox'),
+        graphExpIcon: document.getElementById('graphExpIcon'),
+        graphExpHeadline: document.getElementById('graphExpHeadline'),
+        graphExpBody: document.getElementById('graphExpBody'),
+
+        // โหมดเปรียบเทียบ
+        cmpEndoTemp: document.getElementById('cmpEndoTemp'),
+        cmpExoTemp: document.getElementById('cmpExoTemp'),
+        cmpEndoCurveBg: document.getElementById('cmpEndoCurveBg'),
+        cmpEndoCurveActive: document.getElementById('cmpEndoCurveActive'),
+        cmpEndoBall: document.getElementById('cmpEndoBall'),
+        cmpExoCurveBg: document.getElementById('cmpExoCurveBg'),
+        cmpExoCurveActive: document.getElementById('cmpExoCurveActive'),
+        cmpExoBall: document.getElementById('cmpExoBall'),
+
+        // แผงควบคุมครู
+        btnPlay: document.getElementById('btnPlay'),
+        btnPause: document.getElementById('btnPause'),
+        btnReset: document.getElementById('btnReset'),
+        btnSpeedHalf: document.getElementById('btnSpeedHalf'),
+        btnSpeedNormal: document.getElementById('btnSpeedNormal'),
+        progressSlider: document.getElementById('progressSlider'),
+        progressPercentText: document.getElementById('progressPercentText'),
+      };
+
+      // -------------------------------------------------------------------
+      // ระบบเสียงสังเคราะห์อย่างง่ายด้วย Web Audio API (ไม่พึ่งพาไฟล์ภายนอก)
+      // -------------------------------------------------------------------
+      let audioCtx = null;
+      function playTone(freq, duration, type = 'sine', volume = 0.08) {
+        if (!state.soundEnabled) return;
+        try {
+          if (!audioCtx) {
+            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+            audioCtx = new AudioContextClass();
+          }
+          if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+          }
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+          gain.gain.setValueAtTime(volume, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start();
+          osc.stop(audioCtx.currentTime + duration);
+        } catch (err) {
+          // ข้ามหากเบราว์เซอร์บล็อกเสียง
+        }
+      }
+
+      // -------------------------------------------------------------------
+      // แสดงข้อความแจ้งเตือนสั้นๆ แทน alert()
+      // -------------------------------------------------------------------
+      let toastTimer = null;
+      function showToast(msg) {
+        el.toastBanner.textContent = msg;
+        el.toastBanner.classList.remove('hidden');
+        el.toastBanner.classList.add('toast-enter');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => {
+          el.toastBanner.classList.add('hidden');
+        }, 2400);
+      }
+
+      // -------------------------------------------------------------------
+      // คณิตศาสตร์เส้นโค้งพลังงาน (Reaction Coordinate Curve Interpolation)
+      // -------------------------------------------------------------------
+      // คำนวณพิกัด (x, y) บนเส้นโค้งพลังงานจากความคืบหน้า t (0 ถึง 1)
+      function getEnergyPoint(t, xStart, xPeak, xEnd, yR, yPeak, yP) {
+        const clampedT = Math.max(0, Math.min(1, t));
+        const x = xStart + (xEnd - xStart) * clampedT;
+        const peakT = 0.42; // จุดสูงสุด (สภาวะแทรนซิชัน) อยู่ที่ 42%
+        let y = yR;
+
+        if (clampedT <= peakT) {
+          // ช่วงขาขึ้น (0 -> peakT): โค้งนุ่มนวลแบบ Cosine Ease-In-Out
+          const localT = clampedT / peakT;
+          const ease = 0.5 - 0.5 * Math.cos(Math.PI * localT);
+          y = yR + (yPeak - yR) * ease;
+        } else {
+          // ช่วงขาลง (peakT -> 1): โค้งนุ่มนวลลงสู่ระดับผลิตภัณฑ์
+          const localT = (clampedT - peakT) / (1 - peakT);
+          const ease = 0.5 - 0.5 * Math.cos(Math.PI * localT);
+          y = yPeak + (yP - yPeak) * ease;
+        }
+        return { x, y };
+      }
+
+      // สร้าง SVG Path string จากจุดตัวอย่าง 80 จุด
+      function buildCurvePath(maxT, xStart, xPeak, xEnd, yR, yPeak, yP) {
+        const steps = 80;
+        const limitStep = Math.max(1, Math.round(steps * maxT));
+        let d = '';
+        for (let i = 0; i <= limitStep; i++) {
+          const t = (i / steps);
+          if (t > maxT && i > 1) break;
+          const pt = getEnergyPoint(t, xStart, xPeak, xEnd, yR, yPeak, yP);
+          d += (i === 0 ? `M ${pt.x.toFixed(1)} ${pt.y.toFixed(1)}` : ` L ${pt.x.toFixed(1)} ${pt.y.toFixed(1)}`);
+        }
+        return d;
+      }
+
+      // -------------------------------------------------------------------
+      // เติมรายการตัวอย่างปฏิกิริยาใน Dropdown ตามโหมดปัจจุบัน
+      // -------------------------------------------------------------------
+      function populateReactionDropdown() {
+        const activeProcess = state.mode === 'exo' ? 'exo' : 'endo';
+        const list = REACTIONS[activeProcess];
+        el.reactionSelect.innerHTML = '';
+        list.forEach((rx, idx) => {
+          const opt = document.createElement('option');
+          opt.value = idx;
+          opt.textContent = rx.name;
+          el.reactionSelect.appendChild(opt);
+        });
+        state.selectedIndex = 0;
+        el.reactionSelect.value = '0';
+      }
+
+      // -------------------------------------------------------------------
+      // อัปเดตการแสดงผลระดับอนุภาค (Microscopic View)
+      // -------------------------------------------------------------------
+      function renderParticleSimulation(progressPercent, isEndo) {
+        const t = progressPercent / 100;
+        let atomsHtml = '';
+        let bondsHtml = '';
+        let wavesHtml = '';
+
+        // สีอะตอม: อะตอม A (ฟ้า/ส้ม) และอะตอม B (เขียว/เหลือง)
+        const colorA = isEndo ? '#38bdf8' : '#fb923c';
+        const colorB = '#34d399';
+
+        if (t < 0.42) {
+          // ช่วงที่ 1 (0% -> 42%): สารตั้งต้น A2 + B2 เคลื่อนเข้ามาชนกันและสลายพันธะ
+          const local = t / 0.42; // 0 ถึง 1
+          const stretch = local * 18; // ระยะยืดของพันธะก่อนขาด
+          const cx = 70 + local * 140; // เคลื่อนจากซ้าย (70) ไปกลาง (210)
+
+          // คู่บน (A - A)
+          const ax1 = cx - 16 - stretch * 0.5;
+          const ax2 = cx + 16 + stretch * 0.5;
+          const ay = 46;
+
+          // คู่ล่าง (B - B)
+          const bx1 = cx - 16 - stretch * 0.5;
+          const bx2 = cx + 16 + stretch * 0.5;
+          const by = 88;
+
+          // วาดเส้นพันธะที่กำลังยืดและจางลงเมื่อใกล้ 42%
+          const bondOpacity = Math.max(0.15, 1 - local * 0.85);
+          const dashAttr = local > 0.55 ? 'stroke-dasharray="4 3"' : '';
+          bondsHtml += `<line x1="${ax1}" y1="${ay}" x2="${ax2}" y2="${ay}" stroke="#f8fafc" stroke-width="4" opacity="${bondOpacity}" ${dashAttr} />`;
+          bondsHtml += `<line x1="${bx1}" y1="${by}" x2="${bx2}" y2="${by}" stroke="#f8fafc" stroke-width="4" opacity="${bondOpacity}" ${dashAttr} />`;
+
+          // วาดลูกศรพลังงานดูดเข้าสู่อนุภาคเพื่อสลายพันธะ
+          if (local > 0.1) {
+            wavesHtml += `
+              <circle cx="${cx}" cy="67" r="${22 + local * 16}" fill="none" stroke="#38bdf8" stroke-width="2" stroke-dasharray="5 4" opacity="${0.8 - local * 0.4}" />
+              <text x="${cx}" y="114" text-anchor="middle" fill="#38bdf8" font-size="10.5" font-weight="800">+ ดูดพลังงานสลายพันธะ</text>
+            `;
+          }
+
+          // วาดอะตอม 4 ลูก
+          atomsHtml += `<circle cx="${ax1}" cy="${ay}" r="11" fill="${colorA}" stroke="#ffffff" stroke-width="2" />`;
+          atomsHtml += `<circle cx="${ax2}" cy="${ay}" r="11" fill="${colorA}" stroke="#ffffff" stroke-width="2" />`;
+          atomsHtml += `<circle cx="${bx1}" cy="${by}" r="11" fill="${colorB}" stroke="#ffffff" stroke-width="2" />`;
+          atomsHtml += `<circle cx="${bx2}" cy="${by}" r="11" fill="${colorB}" stroke="#ffffff" stroke-width="2" />`;
+
+          el.particleStepBadge.textContent =
+            t === 0 ? 'ระยะที่ 1: สารตั้งต้นพร้อมทำปฏิกิริยา' : 'ระยะที่ 2: ดูดพลังงานเพื่อสลายพันธะเดิม';
+          el.particleStepBadge.className =
+            'px-2.5 py-0.5 rounded-lg bg-sky-950 border border-sky-500 text-xs sm:text-sm font-bold text-sky-300';
+        } else {
+          // ช่วงที่ 2 (42% -> 100%): อะตอมอิสระจับคู่สร้างพันธะใหม่เป็นผลิตภัณฑ์ 2AB และคายพลังงาน
+          const local = (t - 0.42) / 0.58; // 0 ถึง 1
+          const cx = 210 + local * 140; // เคลื่อนจากกลาง (210) ไปขวา (350)
+          const gap = (1 - local) * 16; // อะตอม A และ B วิ่งเข้าหากันเพื่อสร้างพันธะ
+
+          // โมเลกุลผลิตภัณฑ์บน (A - B)
+          const topAx = cx - 14 - gap * 0.5;
+          const topBx = cx + 14 + gap * 0.5;
+          const topY = 46;
+
+          // โมเลกุลผลิตภัณฑ์ล่าง (A - B)
+          const botAx = cx - 14 - gap * 0.5;
+          const botBx = cx + 14 + gap * 0.5;
+          const botY = 88;
+
+          // วาดพันธะใหม่ที่แข็งแรงขึ้น
+          const bondOpacity = Math.min(1, 0.35 + local * 0.75);
+          bondsHtml += `<line x1="${topAx}" y1="${topY}" x2="${topBx}" y2="${topY}" stroke="#fbbf24" stroke-width="4.5" opacity="${bondOpacity}" />`;
+          bondsHtml += `<line x1="${botAx}" y1="${botY}" x2="${botBx}" y2="${botY}" stroke="#fbbf24" stroke-width="4.5" opacity="${bondOpacity}" />`;
+
+          // คลื่นพลังงานคายออกเมื่อเกิดพันธะใหม่
+          wavesHtml += `
+            <circle cx="${cx}" cy="67" r="${18 + local * 26}" fill="none" stroke="#fb923c" stroke-width="2.5" opacity="${Math.max(0.15, 0.95 - local * 0.75)}" />
+            <text x="${cx}" y="114" text-anchor="middle" fill="#fb923c" font-size="10.5" font-weight="800">- คายพลังงานสร้างพันธะ</text>
+          `;
+
+          // วาดอะตอมผลิตภัณฑ์
+          atomsHtml += `<circle cx="${topAx}" cy="${topY}" r="11" fill="${colorA}" stroke="#ffffff" stroke-width="2" />`;
+          atomsHtml += `<circle cx="${topBx}" cy="${topY}" r="11" fill="${colorB}" stroke="#ffffff" stroke-width="2" />`;
+          atomsHtml += `<circle cx="${botAx}" cy="${botY}" r="11" fill="${colorA}" stroke="#ffffff" stroke-width="2" />`;
+          atomsHtml += `<circle cx="${botBx}" cy="${botY}" r="11" fill="${colorB}" stroke="#ffffff" stroke-width="2" />`;
+
+          el.particleStepBadge.textContent =
+            t >= 0.99 ? 'ระยะที่ 3: เกิดผลิตภัณฑ์สมบูรณ์' : 'ระยะที่ 3: สร้างพันธะใหม่ (คายพลังงานออก)';
+          el.particleStepBadge.className =
+            'px-2.5 py-0.5 rounded-lg bg-orange-950 border border-orange-500 text-xs sm:text-sm font-bold text-orange-300';
+        }
+
+        el.particleEnergyWaves.innerHTML = wavesHtml;
+        el.particleBondsLayer.innerHTML = bondsHtml;
+        el.particleAtomsLayer.innerHTML = atomsHtml;
+      }
+
+      // -------------------------------------------------------------------
+      // อัปเดตฟองแก๊สในบีกเกอร์ตามความคืบหน้าของปฏิกิริยา
+      // -------------------------------------------------------------------
+      function renderBeakerBubbles(progressPercent, hasBubbles) {
+        if (!hasBubbles || progressPercent <= 1 || progressPercent >= 99) {
+          el.beakerBubblesGroup.innerHTML = '';
+          return;
+        }
+        let html = '';
+        const count = 12;
+        for (let i = 0; i < count; i++) {
+          const x = 120 + ((i * 19) % 100);
+          const cycle = ((progressPercent * 2.8 + i * 17) % 85);
+          const y = 198 - cycle;
+          const r = 2.5 + (i % 3) * 1.3;
+          html += `<circle cx="${x}" cy="${y.toFixed(1)}" r="${r}" fill="#ffffff" opacity="0.72" />`;
+        }
+        el.beakerBubblesGroup.innerHTML = html;
+      }
+
+      // -------------------------------------------------------------------
+      // อัปเดตหน้าจอทั้งหมดให้สอดคล้องกับสถานะปัจจุบัน (Master Render)
+      // -------------------------------------------------------------------
+      function renderAll() {
+        const isCompare = state.mode === 'compare';
+        const isEndo = state.mode !== 'exo';
+        const t = state.progress / 100;
+
+        // สลับแสดงผลระหว่างโหมดเดี่ยว (1 หรือ 2) กับโหมดเปรียบเทียบ (3)
+        if (isCompare) {
+          el.singleModeView.classList.add('hidden');
+          el.compareModeView.classList.remove('hidden');
+          el.compareModeView.classList.add('grid');
+          renderCompareMode(t);
+        } else {
+          el.compareModeView.classList.add('hidden');
+          el.compareModeView.classList.remove('grid');
+          el.singleModeView.classList.remove('hidden');
+          renderSingleMode(t, isEndo);
+        }
+
+        // อัปเดตแผงควบคุมด้านล่าง
+        el.progressSlider.value = state.progress;
+        el.progressPercentText.textContent = `${Math.round(state.progress)}%`;
+      }
+
+      // เรนเดอร์โหมดเดี่ยว (ดูดพลังงาน หรือ คายพลังงาน)
+      function renderSingleMode(t, isEndo) {
+        const rxList = isEndo ? REACTIONS.endo : REACTIONS.exo;
+        const rx = rxList[state.selectedIndex] || rxList[0];
+
+        // 1. ป้ายหัวข้อและสมการเคมี
+        if (isEndo) {
+          el.labTypeBadge.textContent = 'ห้องปฏิบัติการจำลอง : ดูดพลังงาน (Endothermic)';
+          el.labTypeBadge.className = 'px-3 py-1 rounded-xl bg-sky-100 text-sky-900 font-extrabold text-sm sm:text-base';
+        } else {
+          el.labTypeBadge.textContent = 'ห้องปฏิบัติการจำลอง : คายพลังงาน (Exothermic)';
+          el.labTypeBadge.className = 'px-3 py-1 rounded-xl bg-orange-100 text-orange-900 font-extrabold text-sm sm:text-base';
+        }
+
+        el.chemicalEquationBox.textContent = rx.equation;
+
+        if (state.progress === 0) {
+          el.reactionStageBadge.textContent = 'สถานะ: พร้อมเริ่มทดลอง (0%)';
+        } else if (state.progress < 42) {
+          el.reactionStageBadge.textContent = `กำลังสลายพันธะ (${Math.round(state.progress)}%)`;
+        } else if (state.progress < 100) {
+          el.reactionStageBadge.textContent = `กำลังสร้างพันธะใหม่ (${Math.round(state.progress)}%)`;
+        } else {
+          el.reactionStageBadge.textContent = 'ปฏิกิริยาสมบูรณ์ (100%)';
+        }
+
+        // 2. สีบีกเกอร์ ออร่า และลูกศรการถ่ายโอนพลังงาน
+        el.liqStopTop.setAttribute('stop-color', t < 0.5 ? rx.liqStart[0] : rx.liqEnd[0]);
+        el.liqStopBot.setAttribute('stop-color', t < 0.5 ? rx.liqStart[1] : rx.liqEnd[1]);
+        el.beakerLiquidSurface.setAttribute('fill', t < 0.5 ? rx.liqStart[0] : rx.liqEnd[0]);
+
+        if (isEndo) {
+          el.auraStopInner.setAttribute('stop-color', '#0ea5e9');
+          el.auraStopOuter.setAttribute('stop-color', '#0ea5e9');
+          el.exoHeatWaves.classList.add('hidden');
+          el.endoFrostEffects.classList.toggle('hidden', state.progress < 15);
+          el.arrowsEndoGroup.classList.remove('hidden');
+          el.arrowsExoGroup.classList.add('hidden');
+          el.heatDirectionCaption.textContent = 'ความร้อนไหลเข้าสู่ระบบ (ดูดพลังงานความร้อน)';
+          el.heatDirectionCaption.setAttribute('fill', '#0369a1');
+        } else {
+          el.auraStopInner.setAttribute('stop-color', '#f97316');
+          el.auraStopOuter.setAttribute('stop-color', '#f97316');
+          el.exoHeatWaves.classList.toggle('hidden', state.progress < 15);
+          el.endoFrostEffects.classList.add('hidden');
+          el.arrowsEndoGroup.classList.add('hidden');
+          el.arrowsExoGroup.classList.remove('hidden');
+          el.heatDirectionCaption.textContent = 'ความร้อนไหลออกจากระบบ (คายพลังงานความร้อน)';
+          el.heatDirectionCaption.setAttribute('fill', '#c2410c');
+        }
+
+        // กวนแท่งแม่เหล็กเมื่อกำลังดำเนินปฏิกิริยา
+        if (state.isPlaying && state.progress > 0 && state.progress < 100) {
+          el.stirrerBar.classList.add('anim-stirrer');
+        } else {
+          el.stirrerBar.classList.remove('anim-stirrer');
+        }
+
+        renderBeakerBubbles(state.progress, rx.hasBubbles);
+
+        // 3. อุณหภูมิและเทอร์โมมิเตอร์แบบเรียลไทม์
+        const currentTemp = rx.startTemp + (rx.endTemp - rx.startTemp) * t;
+        const diffTemp = currentTemp - rx.startTemp;
+        el.digitalTempValue.textContent = `${currentTemp.toFixed(1)} °C`;
+
+        if (Math.abs(diffTemp) < 0.1) {
+          el.digitalTempDelta.textContent = `เริ่มต้น ${rx.startTemp.toFixed(1)} °C`;
+        } else {
+          const sign = diffTemp > 0 ? '+' : '';
+          el.digitalTempDelta.textContent = `เปลี่ยนไป ${sign}${diffTemp.toFixed(1)} °C`;
+        }
+
+        // ความสูงลำปรอทในเทอร์โมมิเตอร์ (ช่วง 0°C -> y=108, 90°C -> y=18)
+        const clampedTemp = Math.max(0, Math.min(90, currentTemp));
+        const colTopY = 108 - (clampedTemp / 90) * 90;
+        const colHeight = 120 - colTopY;
+        el.thermoColumn.setAttribute('y', colTopY.toFixed(1));
+        el.thermoColumn.setAttribute('height', colHeight.toFixed(1));
+
+        const thermoColor = isEndo ? '#0284c7' : '#dc2626';
+        el.thermoColumn.setAttribute('fill', thermoColor);
+        el.thermoBulb.setAttribute('fill', thermoColor);
+        el.digitalTempBox.className = isEndo
+          ? 'w-full bg-slate-900 text-sky-400 rounded-xl py-2 px-2 text-center border-2 border-slate-700 shadow'
+          : 'w-full bg-slate-900 text-orange-400 rounded-xl py-2 px-2 text-center border-2 border-slate-700 shadow';
+
+        if (state.progress < 15) {
+          el.tempFeelingBadge.textContent = 'สัมผัส: อุณหภูมิห้องปกติ';
+          el.tempFeelingBadge.className =
+            'mt-2 px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 border border-slate-300 text-xs font-extrabold text-center w-full';
+        } else if (isEndo) {
+          el.tempFeelingBadge.textContent = rx.feelingEnd;
+          el.tempFeelingBadge.className =
+            'mt-2 px-2.5 py-1 rounded-lg bg-sky-50 text-sky-900 border border-sky-300 text-xs font-extrabold text-center w-full';
+        } else {
+          el.tempFeelingBadge.textContent = rx.feelingEnd;
+          el.tempFeelingBadge.className =
+            'mt-2 px-2.5 py-1 rounded-lg bg-orange-50 text-orange-900 border border-orange-300 text-xs font-extrabold text-center w-full';
+        }
+
+        // 4. มุมมองระดับอนุภาค
+        renderParticleSimulation(state.progress, isEndo);
+        if (isEndo) {
+          el.bondBalanceSummary.innerHTML = `
+            <span>พลังงานสลายพันธะ <strong class="text-sky-400">มากกว่า</strong> พลังงานสร้างพันธะใหม่</span>
+            <span class="px-2 py-0.5 rounded bg-sky-900/90 text-sky-200 font-extrabold shrink-0">สุทธิ: ดูดพลังงาน (+ΔE)</span>
+          `;
+        } else {
+          el.bondBalanceSummary.innerHTML = `
+            <span>พลังงานสลายพันธะ <strong class="text-orange-400">น้อยกว่า</strong> พลังงานสร้างพันธะใหม่</span>
+            <span class="px-2 py-0.5 rounded bg-orange-900/90 text-orange-200 font-extrabold shrink-0">สุทธิ: คายพลังงาน (-ΔE)</span>
+          `;
+        }
+
+        // 5. กราฟการเปลี่ยนแปลงพลังงาน (Reaction Energy Diagram)
+        const xStart = 120;
+        const xPeak = 315;
+        const xEnd = 520;
+        const yR = rx.yReactant;
+        const yPeak = rx.yPeak;
+        const yP = rx.yProduct;
+
+        // เส้นอ้างอิงระดับพลังงาน
+        el.refLineReactant.setAttribute('y1', yR);
+        el.refLineReactant.setAttribute('y2', yR);
+        el.refLineProduct.setAttribute('y1', yP);
+        el.refLineProduct.setAttribute('y2', yP);
+        el.refLinePeak.setAttribute('y1', yPeak);
+        el.refLinePeak.setAttribute('y2', yPeak);
+
+        // เส้นโค้งพื้นหลังและเส้นโค้งที่เดินไปแล้ว
+        const fullPath = buildCurvePath(1, xStart, xPeak, xEnd, yR, yPeak, yP);
+        const activePath = buildCurvePath(Math.max(0.005, t), xStart, xPeak, xEnd, yR, yPeak, yP);
+        el.energyCurveBg.setAttribute('d', fullPath);
+        el.energyCurveActive.setAttribute('d', activePath);
+        el.energyCurveActive.setAttribute('stroke', isEndo ? '#0284c7' : '#ea580c');
+
+        // ตำแหน่งลูกบอลติดตามบนกราฟ
+        const pt = getEnergyPoint(t, xStart, xPeak, xEnd, yR, yPeak, yP);
+        el.energyTrackerBall.setAttribute('transform', `translate(${pt.x.toFixed(1)}, ${pt.y.toFixed(1)})`);
+        const ballCircles = el.energyTrackerBall.querySelectorAll('circle');
+        if (ballCircles.length >= 2) {
+          ballCircles[0].setAttribute('stroke', isEndo ? '#0284c7' : '#ea580c');
+          ballCircles[1].setAttribute('fill', isEndo ? '#0284c7' : '#ea580c');
+        }
+        el.trackerDropLine.setAttribute('x1', pt.x.toFixed(1));
+        el.trackerDropLine.setAttribute('y1', pt.y.toFixed(1));
+        el.trackerDropLine.setAttribute('x2', pt.x.toFixed(1));
+        el.trackerDropLine.setAttribute('stroke', isEndo ? '#0284c7' : '#ea580c');
+
+        // ปรับตำแหน่งป้ายกำกับบนกราฟให้ไม่ทับเส้น
+        el.diagramLabelsGroup.classList.toggle('hidden', !state.showLabels);
+
+        // ป้ายสารตั้งต้น
+        const rLabelY = yR - 36;
+        el.diagramLabelsGroup.querySelector('rect').setAttribute('y', rLabelY);
+        el.diagramLabelsGroup.querySelector('text').setAttribute('y', rLabelY + 20);
+
+        // ป้ายผลิตภัณฑ์
+        const pLabelY = isEndo ? yP - 36 : yP + 10;
+        el.productLabelBox.setAttribute('y', pLabelY);
+        el.productLabelBox.setAttribute('fill', isEndo ? '#0369a1' : '#c2410c');
+        el.productLabelText.setAttribute('y', pLabelY + 20);
+
+        // ลูกศรพลังงานกระตุ้น (Ea)
+        el.arrowEaLine.setAttribute('y1', yR - 4);
+        el.arrowEaLine.setAttribute('y2', yPeak + 6);
+        const eaBoxY = (yR + yPeak) / 2 - 22;
+        el.eaTagBg.setAttribute('y', eaBoxY);
+        const eaTexts = el.diagramLabelsGroup.querySelectorAll('text');
+        // eaTexts[3] และ eaTexts[4] คือข้อความในกล่อง Ea
+        if (eaTexts[3] && eaTexts[4]) {
+          eaTexts[3].setAttribute('y', eaBoxY + 18);
+          eaTexts[4].setAttribute('y', eaBoxY + 35);
+        }
+
+        // ลูกศรสร้างพันธะใหม่ (ขาลง)
+        el.arrowBondFormLine.setAttribute('y1', yPeak + 5);
+        el.arrowBondFormLine.setAttribute('y2', yP - 6);
+        const bfBoxY = (yPeak + yP) / 2 - 21;
+        el.bondFormTagBg.setAttribute('y', bfBoxY);
+        if (eaTexts[5] && eaTexts[6]) {
+          eaTexts[5].setAttribute('y', bfBoxY + 18);
+          eaTexts[6].setAttribute('y', bfBoxY + 34);
+        }
+
+        // ลูกศรผลต่างพลังงานสุทธิ (ΔE)
+        if (isEndo) {
+          el.arrowDeltaELine.setAttribute('y1', yR - 4);
+          el.arrowDeltaELine.setAttribute('y2', yP + 6);
+          el.arrowDeltaELine.setAttribute('stroke', '#0369a1');
+          el.arrowDeltaELine.setAttribute('marker-end', 'url(#arrowDeltaUp)');
+          el.deltaETagBg.setAttribute('fill', '#0369a1');
+          el.deltaESubText.textContent = 'ดูดพลังงานสุทธิ (+)';
+          el.deltaESubText.setAttribute('fill', '#bae6fd');
+        } else {
+          el.arrowDeltaELine.setAttribute('y1', yR + 4);
+          el.arrowDeltaELine.setAttribute('y2', yP - 6);
+          el.arrowDeltaELine.setAttribute('stroke', '#dc2626');
+          el.arrowDeltaELine.setAttribute('marker-end', 'url(#arrowDeltaDown)');
+          el.deltaETagBg.setAttribute('fill', '#dc2626');
+          el.deltaESubText.textContent = 'คายพลังงานสุทธิ (-)';
+          el.deltaESubText.setAttribute('fill', '#fecaca');
+        }
+        const deltaMidY = (yR + yP) / 2 - 23;
+        el.deltaETagBg.setAttribute('y', deltaMidY);
+        el.deltaETitleText.setAttribute('y', deltaMidY + 19);
+        el.deltaESubText.setAttribute('y', deltaMidY + 37);
+        el.deltaETitleText.textContent = `ΔE = ${rx.deltaE.replace('/mol', '')}`;
+
+        // แท่งเปรียบเทียบสลายพันธะ vs สร้างพันธะ
+        el.bondComparisonBarsGroup.classList.toggle('hidden', !state.showBondBars);
+        const absorbHeight = Math.max(40, yR - yPeak);
+        const releaseHeight = Math.max(40, yP - yPeak);
+        el.barAbsorbRect.setAttribute('y', 300 - absorbHeight);
+        el.barAbsorbRect.setAttribute('height', absorbHeight);
+        el.barReleaseRect.setAttribute('y', 300 - releaseHeight);
+        el.barReleaseRect.setAttribute('height', releaseHeight);
+
+        // 6. กล่องสรุปคำอธิบายด้านล่างกราฟ
+        el.graphExpHeadline.textContent = rx.summaryHeadline;
+        el.graphExpBody.textContent = rx.summaryText;
+        if (isEndo) {
+          el.graphExplanationBox.className =
+            'rounded-2xl bg-sky-50 border-2 border-sky-200 p-4 flex flex-col sm:flex-row items-start sm:items-center gap-3.5';
+          el.graphExpIcon.className =
+            'w-11 h-11 rounded-xl bg-sky-600 text-white flex items-center justify-center font-black text-xl shrink-0';
+          el.graphExpIcon.textContent = '❄️';
+          el.graphExpHeadline.className = 'text-sky-950 font-extrabold block text-base sm:text-lg';
+        } else {
+          el.graphExplanationBox.className =
+            'rounded-2xl bg-orange-50 border-2 border-orange-200 p-4 flex flex-col sm:flex-row items-start sm:items-center gap-3.5';
+          el.graphExpIcon.className =
+            'w-11 h-11 rounded-xl bg-orange-600 text-white flex items-center justify-center font-black text-xl shrink-0';
+          el.graphExpIcon.textContent = '🔥';
+          el.graphExpHeadline.className = 'text-orange-950 font-extrabold block text-base sm:text-lg';
+        }
+      }
+
+      // เรนเดอร์โหมดที่ 3: เปรียบเทียบ 2 กระบวนการพร้อมกัน
+      function renderCompareMode(t) {
+        const endoRx = REACTIONS.endo[0];
+        const exoRx = REACTIONS.exo[0];
+
+        const endoTemp = endoRx.startTemp + (endoRx.endTemp - endoRx.startTemp) * t;
+        const exoTemp = exoRx.startTemp + (exoRx.endTemp - exoRx.startTemp) * t;
+        el.cmpEndoTemp.textContent = `${endoTemp.toFixed(1)} °C`;
+        el.cmpExoTemp.textContent = `${exoTemp.toFixed(1)} °C`;
+
+        // กราฟดูดพลังงาน (ซ้าย)
+        el.cmpEndoCurveBg.setAttribute('d', buildCurvePath(1, 75, 200, 345, 165, 42, 95));
+        el.cmpEndoCurveActive.setAttribute('d', buildCurvePath(Math.max(0.01, t), 75, 200, 345, 165, 42, 95));
+        const ptEndo = getEnergyPoint(t, 75, 200, 345, 165, 42, 95);
+        el.cmpEndoBall.setAttribute('cx', ptEndo.x.toFixed(1));
+        el.cmpEndoBall.setAttribute('cy', ptEndo.y.toFixed(1));
+
+        // กราฟคายพลังงาน (ขวา)
+        el.cmpExoCurveBg.setAttribute('d', buildCurvePath(1, 75, 200, 345, 100, 42, 175));
+        el.cmpExoCurveActive.setAttribute('d', buildCurvePath(Math.max(0.01, t), 75, 200, 345, 100, 42, 175));
+        const ptExo = getEnergyPoint(t, 75, 200, 345, 100, 42, 175);
+        el.cmpExoBall.setAttribute('cx', ptExo.x.toFixed(1));
+        el.cmpExoBall.setAttribute('cy', ptExo.y.toFixed(1));
+      }
+
+      // -------------------------------------------------------------------
+      // วงจรแอนิเมชันหลัก (Animation Loop)
+      // -------------------------------------------------------------------
+      function animationLoop(timestamp) {
+        if (state.isPlaying) {
+          if (state.lastTimestamp !== null) {
+            const dtSeconds = (timestamp - state.lastTimestamp) / 1000;
+            // ใช้เวลาประมาณ 9 วินาทีสำหรับ 1x และ 18 วินาทีสำหรับ 0.5x
+            const rate = 11.5 * state.speed;
+            state.progress += dtSeconds * rate;
+
+            // ส่งเสียงประกอบเบาๆ เมื่อผ่านจุด 42% และ 100%
+            if (state.progress >= 42 && state.lastSoundMilestone < 42) {
+              state.lastSoundMilestone = 42;
+              playTone(520, 0.14, 'triangle', 0.06);
+            }
+
+            if (state.progress >= 100) {
+              state.progress = 100;
+              state.isPlaying = false;
+              state.lastSoundMilestone = 100;
+              playTone(state.mode === 'exo' ? 660 : 440, 0.25, 'sine', 0.08);
+            }
+            renderAll();
+          }
+          state.lastTimestamp = timestamp;
+        } else {
+          state.lastTimestamp = null;
+        }
+        requestAnimationFrame(animationLoop);
+      }
+
+      // -------------------------------------------------------------------
+      // การจัดการเหตุการณ์ปุ่มกดทั้งหมด (Event Listeners)
+      // -------------------------------------------------------------------
+      function switchMode(newMode) {
+        state.mode = newMode;
+        state.isPlaying = false;
+        state.progress = 0;
+        state.lastSoundMilestone = -1;
+
+        // ปรับสไตล์ปุ่มโหมดทั้ง 3 ปุ่ม
+        el.modeBtnEndo.className =
+          newMode === 'endo'
+            ? 'mode-tab-btn px-4 py-3 rounded-2xl border-2 font-extrabold text-base sm:text-lg flex items-center justify-center gap-2.5 transition-all shadow-sm cursor-pointer bg-sky-600 text-white border-sky-700 ring-4 ring-sky-200'
+            : 'mode-tab-btn px-4 py-3 rounded-2xl border-2 font-extrabold text-base sm:text-lg flex items-center justify-center gap-2.5 transition-all shadow-sm cursor-pointer bg-white text-sky-900 border-sky-300 hover:bg-sky-50';
+
+        el.modeBtnExo.className =
+          newMode === 'exo'
+            ? 'mode-tab-btn px-4 py-3 rounded-2xl border-2 font-extrabold text-base sm:text-lg flex items-center justify-center gap-2.5 transition-all shadow-sm cursor-pointer bg-orange-600 text-white border-orange-700 ring-4 ring-orange-200'
+            : 'mode-tab-btn px-4 py-3 rounded-2xl border-2 font-extrabold text-base sm:text-lg flex items-center justify-center gap-2.5 transition-all shadow-sm cursor-pointer bg-white text-orange-800 border-orange-300 hover:bg-orange-50';
+
+        el.modeBtnCompare.className =
+          newMode === 'compare'
+            ? 'mode-tab-btn px-4 py-3 rounded-2xl border-2 font-extrabold text-base sm:text-lg flex items-center justify-center gap-2.5 transition-all shadow-sm cursor-pointer bg-indigo-700 text-white border-indigo-800 ring-4 ring-indigo-200'
+            : 'mode-tab-btn px-4 py-3 rounded-2xl border-2 font-extrabold text-base sm:text-lg flex items-center justify-center gap-2.5 transition-all shadow-sm cursor-pointer bg-white text-indigo-900 border-indigo-300 hover:bg-indigo-50';
+
+        if (newMode !== 'compare') {
+          populateReactionDropdown();
+        }
+        renderAll();
+      }
+
+      el.modeBtnEndo.addEventListener('click', () => switchMode('endo'));
+      el.modeBtnExo.addEventListener('click', () => switchMode('exo'));
+      el.modeBtnCompare.addEventListener('click', () => switchMode('compare'));
+
+      // เลือกปฏิกิริยาเคมีจากเมนู
+      el.reactionSelect.addEventListener('change', (e) => {
+        state.selectedIndex = parseInt(e.target.value, 10) || 0;
+        state.progress = 0;
+        state.isPlaying = false;
+        state.lastSoundMilestone = -1;
+        renderAll();
+      });
+
+      // ปุ่มควบคุมสำหรับครูผู้สอน
+      el.btnPlay.addEventListener('click', () => {
+        if (state.progress >= 100) {
+          state.progress = 0;
+          state.lastSoundMilestone = -1;
+        }
+        state.isPlaying = true;
+        playTone(440, 0.1, 'sine', 0.06);
+        renderAll();
+      });
+
+      el.btnPause.addEventListener('click', () => {
+        state.isPlaying = false;
+        renderAll();
+      });
+
+      el.btnReset.addEventListener('click', () => {
+        state.isPlaying = false;
+        state.progress = 0;
+        state.lastSoundMilestone = -1;
+        renderAll();
+      });
+
+      // ปุ่มความเร็ว 0.5x / 1x
+      [el.btnSpeedHalf, el.btnSpeedNormal].forEach((btn) => {
+        btn.addEventListener('click', () => {
+          state.speed = parseFloat(btn.dataset.speed);
+          el.btnSpeedHalf.className =
+            state.speed === 0.5
+              ? 'speed-btn px-3 py-1.5 rounded-xl text-sm font-extrabold bg-slate-900 text-white shadow-sm transition cursor-pointer'
+              : 'speed-btn px-3 py-1.5 rounded-xl text-sm font-extrabold text-slate-700 hover:bg-white transition cursor-pointer';
+          el.btnSpeedNormal.className =
+            state.speed === 1
+              ? 'speed-btn px-3 py-1.5 rounded-xl text-sm font-extrabold bg-slate-900 text-white shadow-sm transition cursor-pointer'
+              : 'speed-btn px-3 py-1.5 rounded-xl text-sm font-extrabold text-slate-700 hover:bg-white transition cursor-pointer';
+        });
+      });
+
+      // แถบเลื่อน Progress Slider
+      el.progressSlider.addEventListener('input', (e) => {
+        state.isPlaying = false;
+        state.progress = parseFloat(e.target.value);
+        renderAll();
+      });
+
+      // ปุ่มลัดกระโดดไปยังช่วงสำคัญ
+      document.querySelectorAll('.jump-stage-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          state.isPlaying = false;
+          state.progress = parseFloat(btn.dataset.jump);
+          renderAll();
+        });
+      });
+
+      // ปุ่มซ่อน/แสดงป้ายกำกับกราฟ (สำหรับครูตั้งคำถามก่อนเฉลย)
+      el.btnToggleLabels.addEventListener('click', () => {
+        state.showLabels = !state.showLabels;
+        el.btnToggleLabels.setAttribute('aria-pressed', String(state.showLabels));
+        el.toggleLabelsText.textContent = state.showLabels
+          ? 'ซ่อนป้ายกำกับกราฟ (ถามนักเรียน)'
+          : 'แสดงป้ายกำกับกราฟ (เฉลย)';
+        showToast(state.showLabels ? 'แสดงป้ายกำกับบนกราฟแล้ว' : 'ซ่อนป้ายกำกับบนกราฟแล้ว (โหมดถาม-ตอบ)');
+        renderAll();
+      });
+
+      // ปุ่มแสดง/ซ่อนแท่งเปรียบเทียบสลายพันธะ vs สร้างพันธะ
+      el.btnToggleBondBars.addEventListener('click', () => {
+        state.showBondBars = !state.showBondBars;
+        el.btnToggleBondBars.setAttribute('aria-pressed', String(state.showBondBars));
+        el.toggleBondBarsText.textContent = state.showBondBars
+          ? 'ซ่อนแท่งเปรียบเทียบพันธะ'
+          : 'แสดงแท่งเปรียบเทียบสลาย vs สร้างพันธะ';
+        renderAll();
+      });
+
+      // ปุ่มขยายตัวอักษร (Large Text Mode)
+      el.btnLargeText.addEventListener('click', () => {
+        state.largeText = !state.largeText;
+        document.documentElement.classList.toggle('large-text', state.largeText);
+        el.btnLargeText.setAttribute('aria-pressed', String(state.largeText));
+        el.largeTextLabel.textContent = state.largeText ? 'ขนาดตัวอักษรปกติ' : 'ขยายตัวอักษร (Large Text)';
+        showToast(state.largeText ? 'เปิดโหมดขยายตัวอักษรสำหรับจอโปรเจกเตอร์แล้ว' : 'กลับสู่ขนาดตัวอักษรปกติ');
+      });
+
+      // ปุ่มเปิด/ปิดเสียง
+      el.btnSoundToggle.addEventListener('click', () => {
+        state.soundEnabled = !state.soundEnabled;
+        el.btnSoundToggle.setAttribute('aria-pressed', String(state.soundEnabled));
+        el.iconSoundOff.classList.toggle('hidden', state.soundEnabled);
+        el.iconSoundOn.classList.toggle('hidden', !state.soundEnabled);
+        if (state.soundEnabled) {
+          playTone(580, 0.12, 'sine', 0.08);
+          showToast('เปิดเสียงประกอบการจำลองแล้ว');
+        } else {
+          showToast('ปิดเสียงประกอบแล้ว');
+        }
+      });
+
+      // เปิด/ปิดหน้าต่างตารางสรุปเปรียบเทียบ (ม.3)
+      el.btnSummaryModal.addEventListener('click', () => {
+        el.summaryModal.classList.remove('hidden');
+      });
+      el.btnCloseModal.addEventListener('click', () => {
+        el.summaryModal.classList.add('hidden');
+      });
+      el.summaryModal.addEventListener('click', (e) => {
+        if (e.target === el.summaryModal) {
+          el.summaryModal.classList.add('hidden');
+        }
+      });
+
+      // รองรับคีย์บอร์ด (Spacebar = เล่น/หยุด, ลูกศรซ้าย/ขวา = เลื่อนทีละ 5%)
+      window.addEventListener('keydown', (e) => {
+        if (e.target.tagName === 'SELECT' || e.target.tagName === 'INPUT') return;
+        if (e.code === 'Space') {
+          e.preventDefault();
+          if (state.isPlaying) {
+            el.btnPause.click();
+          } else {
+            el.btnPlay.click();
+          }
+        } else if (e.code === 'ArrowRight') {
+          state.isPlaying = false;
+          state.progress = Math.min(100, state.progress + 5);
+          renderAll();
+        } else if (e.code === 'ArrowLeft') {
+          state.isPlaying = false;
+          state.progress = Math.max(0, state.progress - 5);
+          renderAll();
+        } else if (e.code === 'Escape') {
+          el.summaryModal.classList.add('hidden');
+        }
+      });
+
+      // เริ่มต้นระบบเมื่อโหลดหน้าเว็บเสร็จสมบูรณ์
+      window.onload = function () {
+        populateReactionDropdown();
+        renderAll();
+        requestAnimationFrame(animationLoop);
+      };
+    })();
+  </script>
+</body>
+</html>
